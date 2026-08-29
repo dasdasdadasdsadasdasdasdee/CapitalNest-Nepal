@@ -4,6 +4,7 @@
   "description": "A free crypto investment template with a user dashboard",
   "main": "supabase-config.js",
   "scripts": {
+    "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -19,6 +20,7 @@
   "homepage": "https://github.com/RaviRepo99/CapitalNest-Nepal#readme",
   "dependencies": {
     "@supabase/supabase-js": "^2.112.4",
-    "dotenv": "^17.4.2"
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1"
   }
 }
