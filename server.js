@@ -24,6 +24,17 @@ app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'home.html'));
 });
 
+if (process.env.TELEGRAM_BOT_TOKEN) {
+  try {
+    require('./server/telegram-bot');
+    console.log('Telegram bot startup hook enabled.');
+  } catch (error) {
+    console.error('Telegram bot failed to start:', error.message);
+  }
+} else {
+  console.warn('Telegram bot is disabled because TELEGRAM_BOT_TOKEN is not set in Railway environment variables.');
+}
+
 app.listen(PORT, () => {
   console.log(`CapitalNest Nepal server running on port ${PORT}`);
 });

@@ -10,13 +10,13 @@ const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const notifiedInvestmentIds = new Set();
 
 if (!botToken) {
-  console.error('TELEGRAM_BOT_TOKEN is missing. Add it to your server-side .env before starting the bot.');
-  process.exit(1);
+  console.warn('TELEGRAM_BOT_TOKEN is missing. Telegram bot will stay disabled.');
+  return;
 }
 
 if (!supabaseUrl || !serviceRoleKey) {
-  console.error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required on the server side.');
-  process.exit(1);
+  console.warn('Telegram bot is disabled because SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is missing.');
+  return;
 }
 
 if (configuredSupabaseUrl && configuredSupabaseUrl !== projectSupabaseUrl) {
@@ -261,8 +261,12 @@ async function pollTelegram() {
     } catch (error) {
       console.error('Polling error:', error.message);
       if (/invalid api key/i.test(error.message)) {
-        console.error('Set SUPABASE_SERVICE_ROLE_KEY to a valid key from this project, then restart the bot.');
-        process.exit(1);
+        console.warn('Telegram bot credentials are invalid. Bot remains disabled until a valid TELEGRAM_BOT_TOKEN and SUPABASE_SERVICE_ROLE_KEY are configured in Railway.');
+        return;
+      }
+      if (/forbidden|unauthorized|401|403/i.test(error.message)) {
+        console.warn('Telegram bot authorization failed. Check the bot token and admin chat settings in Railway.');
+        return;
       }
     }
   }
@@ -275,6 +279,6 @@ async function pollTelegram() {
     await pollTelegram();
   } catch (error) {
     console.error('Failed to start Telegram bot:', error.message);
-    process.exit(1);
+    console.warn('Telegram bot startup failed, but the web app will continue to run on Railway.');
   }
 })();
