@@ -4,9 +4,9 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
-    <title>Sample Invest</title>
+    <title>CapitalNest Nepal</title>
     <meta name="twitter:card" content="summary">
-    <meta property="og:title" content="Sample invest">
+    <meta property="og:title" content="CapitalNest Nepal">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="manifest" href="../manifest.json">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:100,100i,300,300i,400,400i,700,700i,900,900i">
@@ -16,6 +16,163 @@
     <link rel="stylesheet" href="https://cdn.datatables.net/v/bs4/jszip-2.5.0/dt-1.10.21/b-1.6.2/b-colvis-1.6.2/b-html5-1.6.2/b-print-1.6.2/cr-1.5.2/fc-3.3.1/fh-3.1.7/kt-2.5.2/r-2.2.5/sc-2.0.2/sp-1.1.1/datatables.min.css" crossorigin="anonymous">
     <link rel="stylesheet" href="https://unpkg.com/@bootstrapstudio/bootstrap-better-nav/dist/bootstrap-better-nav.min.css" crossorigin="anonymous">
     <link rel="stylesheet" href="../assets/css/styles.min.css">
+    <style>
+        .navbar-dashboard {
+            background: #ffffff !important;
+            border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+            box-shadow: none;
+            padding: 10px 0;
+        }
+
+        .nav2 {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .nav-item {
+            position: relative;
+        }
+
+        .navlink2, .nav-link {
+            color: #1f2937 !important;
+            font-weight: 600;
+            font-size: 0.94rem;
+            padding: 10px 14px !important;
+            border-radius: 10px;
+            transition: color 0.2s ease, background-color 0.2s ease;
+        }
+
+        .navlink2:hover, .nav-link:hover {
+            color: #2a30fe !important;
+            background: #f3f4f6;
+        }
+
+        .navlink2.active, .nav-link.active {
+            color: #ffffff !important;
+            background: linear-gradient(135deg, #2a30fe, #3b82f6);
+            box-shadow: none;
+        }
+
+        .badge-primary {
+            background: #2a30fe !important;
+            font-size: 11px;
+            padding: 4px 8px !important;
+            box-shadow: none;
+        }
+
+        .navbar-toggler {
+            border: none;
+        }
+
+        .dashboard-icon {
+            font-size: 24px;
+            color: #2a30fe;
+        }
+
+        .pill-counter {
+            margin-left: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .nav2 {
+                width: 100%;
+                display: block;
+            }
+
+            .nav-item {
+                width: 100%;
+            }
+
+            .navlink2, .nav-link {
+                padding: 12px 12px !important;
+            }
+        }
+
+        body.dashboard-body {
+            background: #f5f7fb;
+            color: #1f2937;
+        }
+
+        .dashboard-heading-h {
+            color: #1f2937;
+            font-size: 1.75rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+
+        .card-bg {
+            background: transparent;
+            border: none;
+        }
+
+        .card1 {
+            background: rgba(255, 255, 255, 0.85);
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            border-radius: 14px;
+            box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .card1:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
+        }
+
+        .table {
+            border-collapse: separate;
+            border-spacing: 0 10px;
+        }
+
+        .table thead th {
+            color: #64748b;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            border: none;
+            padding-bottom: 10px;
+        }
+
+        .table tbody tr {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(15, 23, 42, 0.03);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .table tbody tr:hover {
+            transform: translateX(2px);
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+        }
+
+        .table tbody td {
+            border: none;
+            padding: 0.9rem 1rem;
+            color: #334155;
+            font-weight: 400;
+            vertical-align: middle;
+        }
+
+        .table-p,
+        .body-p {
+            color: #475569;
+            font-weight: 400;
+        }
+
+        .badge-warning {
+            font-weight: 500;
+            letter-spacing: 0.02em;
+        }
+
+        .btn3 {
+            transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+        }
+
+        .btn3:hover {
+            transform: translateY(-1px);
+        }
+    </style>
 </head>
 
 <body class="dashboard-body">
@@ -25,10 +182,10 @@
     <h4 class="modal-title">Add Wallet</h4><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true"><i data-toggle="tooltip" class="la la-close"></i></span></button></div>
                 <div class="modal-body">
                     <form id="fundwalletform">
-                        <div class="form-group"><label for="paymenttype">Wallet Type</label><select class="form-control" id="paymenttype" required=""><optgroup label="Supported Wallets"><option value="Bitcoin" selected="">Bitcoin</option><option value="Ethereum">Ethereum</option><option value="Litecoin">Litecoin</option></optgroup></select></div>
+                        <div class="form-group"><label for="paymenttype">Payment Method</label><select class="form-control" id="paymenttype" required=""><optgroup label="Supported Methods"><option value="Bank Transfer" selected="">Bank Transfer</option><option value="eSewa">eSewa</option><option value="IME Pay">IME Pay</option><option value="Khalti">Khalti</option></optgroup></select></div>
                         <div
-                            class="form-group"><label for="walletaddress">Wallet Address</label><input class="form-control" type="text" id="walletaddress" required="" inputmode="numeric"></div>
-                <div class="form-group mt-4"><button class="btn btn3" type="submit">Add Wallet</button></div>
+                            class="form-group"><label for="walletaddress">Account Details</label><input class="form-control" type="text" id="walletaddress" required="" inputmode="numeric"></div>
+                <div class="form-group mt-4"><button class="btn btn3" type="submit">Add Method</button></div>
                 </form>
             </div>
         </div>
@@ -40,7 +197,7 @@
     <h4 class="modal-title">Make Withdrawal</h4><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true"><i data-toggle="tooltip" class="la la-close"></i></span></button></div>
                 <div class="modal-body">
                     <form id="fundwalletform-1">
-                        <div class="form-group"><label for="withdrawwallet">Choose Withdrawal Wallet</label><select class="form-control" id="withdrawwallet" required=""><optgroup label="Supported Wallets"><option value="Bitcoin" selected="">Bitcoin</option><option value="Ethereum">Ethereum</option><option value="Litecoin">Litecoin</option></optgroup></select></div>
+                        <div class="form-group"><label for="withdrawwallet">Choose Withdrawal Method</label><select class="form-control" id="withdrawwallet" required=""><optgroup label="Supported Methods"><option value="Bank Transfer" selected="">Bank Transfer</option><option value="eSewa">eSewa</option><option value="IME Pay">IME Pay</option><option value="Khalti">Khalti</option></optgroup></select></div>
                         <div
                             class="form-group"><label for="amountwithdraw">Amount To Withdraw<br></label><input class="form-control" type="number" id="amountwithdraw" min="10" max="10000"></div>
                 <div class="form-group mt-4"><button class="btn btn3" type="submit">Request Withdrawal</button></div>
@@ -54,16 +211,16 @@
             <div
                 class="collapse navbar-collapse" id="navcol-1">
                 <ul class="nav navbar-nav pt-3 pb-3 nav2 pl-3">
-                    <li class="nav-item mr-4"><a class="nav-link active navlink2" href="../user/index.html">Dashboard</a></li>
+                    <li class="nav-item mr-4"><a class="nav-link navlink2" href="../user/index.html">Dashboard</a></li>
                     <li class="nav-item mr-4"><a class="nav-link navlink2" href="../user/wallet.html">Wallet</a></li>
                     <li class="nav-item mr-4"><a class="nav-link navlink2" href="../user/investment.html">Investment</a></li>
                     <li class="nav-item mr-4"><a class="nav-link navlink2" href="../user/withdrawals.html">Withdrawals</a></li>
-                    <li class="nav-item mr-4"><a class="nav-link navlink2" href="../user/messages.html">Messages<span class="badge badge-pill badge-primary pill-counter">42</span></a></li>
+                    <li class="nav-item mr-4"><a class="nav-link active navlink2" href="../user/messages.html">Messages<span class="badge badge-pill badge-primary pill-counter">1</span></a></li>
                 </ul>
                 <ul class="nav navbar-nav ml-auto pt-3 pb-3 nav2 pl-3">
                     <li class="nav-item mr-4">
                         <div class="nav-item dropdown"><a class="dropdown-toggle" data-toggle="dropdown" aria-expanded="false" href="#"><img class="mr-2" src="../assets/img/client03.png" width="30">My Profile</a>
-                            <div class="dropdown-menu"><a class="dropdown-item pt-3 pb-3" href="../user/profile-settings.html">Profile &amp; Settings</a><a class="dropdown-item pt-3 pb-3" href="../index-old.html">Log Out</a></div>
+                            <div class="dropdown-menu"><a class="dropdown-item pt-3 pb-3" href="../user/profile-settings.html">Profile &amp; Settings</a><a class="dropdown-item pt-3 pb-3" href="../home.html">Log Out</a></div>
                         </div>
                     </li>
                 </ul>
@@ -100,28 +257,18 @@
                             <tbody>
                                 <tr>
                                     <td>01</td>
-                                    <td><a href="#">Message Title</a></td>
+                                    <td><a href="#">Investment Package Confirmation</a></td>
                                     <td>
-                                        <p class="text-truncate table-p">Velit euismod ipsum vitae, donec curabitur ligula eu. Adipiscing erat sociosqu, primis varius gravida ante laoreet dolor arcu. Vulputate ligula ut, a euismod eu ornare.</p>
+                                        <p class="text-truncate table-p">Your selected investment package has been confirmed. Please review the plan details and complete the required payment to activate your investment.</p>
                                     </td>
                                     <td>
                                         <p class="table-p">20.12.2020 11:43</p>
                                     </td>
                                     <td><span class="badge badge-pill badge-warning card-badge-g">Read</span></td>
                                 </tr>
-                                <tr>
-                                    <td>01</td>
-                                    <td><a href="#">Message Title</a></td>
-                                    <td>
-                                        <p class="text-truncate table-p">Velit euismod ipsum vitae, donec curabitur ligula eu. Adipiscing erat sociosqu, primis varius gravida ante laoreet dolor arcu. Vulputate ligula ut, a euismod eu ornare.</p>
-                                    </td>
-                                    <td>
-                                        <p class="text-nowrap table-p">20.12.2020 11:43</p>
-                                    </td>
-                                    <td><span class="badge badge-pill badge-warning card-badge-b">Unread</span></td>
-                                </tr>
                             </tbody>
                         </table>
+                        <div class="mt-2 text-muted small">Showing 1 message</div>
                     </div>
                 </div>
             </div>
@@ -136,6 +283,37 @@
     <script src="https://cdn.jsdelivr.net/npm/typed.js@2.0.9"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.4.1/jquery.easing.min.js"></script>
     <script src="../assets/js/script.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+            const navLinks = document.querySelectorAll('.navlink2');
+
+            // Set active link on page load
+            navLinks.forEach(function (link) {
+                const href = link.getAttribute('href');
+                if (!href || href.startsWith('#')) return;
+
+                const targetPage = href.split('/').pop();
+                if (targetPage === currentPage) {
+                    link.classList.add('active');
+                } else {
+                    link.classList.remove('active');
+                }
+            });
+
+            // Add click handler with immediate feedback
+            navLinks.forEach(function (link) {
+                link.addEventListener('click', function (e) {
+                    // Remove active from all links immediately
+                    navLinks.forEach(function (item) {
+                        item.classList.remove('active');
+                    });
+                    // Add active to clicked link immediately
+                    link.classList.add('active');
+                });
+            });
+        });
+    </script>
 </body>
 
 </html>

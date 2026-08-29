@@ -4,9 +4,9 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
-    <title>Sample Invest</title>
+    <title>CapitalNest Nepal</title>
     <meta name="twitter:card" content="summary">
-    <meta property="og:title" content="Sample invest">
+    <meta property="og:title" content="CapitalNest Nepal">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="manifest" href="../manifest.json">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:100,100i,300,300i,400,400i,700,700i,900,900i">
@@ -16,9 +16,322 @@
     <link rel="stylesheet" href="https://cdn.datatables.net/v/bs4/jszip-2.5.0/dt-1.10.21/b-1.6.2/b-colvis-1.6.2/b-html5-1.6.2/b-print-1.6.2/cr-1.5.2/fc-3.3.1/fh-3.1.7/kt-2.5.2/r-2.2.5/sc-2.0.2/sp-1.1.1/datatables.min.css" crossorigin="anonymous">
     <link rel="stylesheet" href="https://unpkg.com/@bootstrapstudio/bootstrap-better-nav/dist/bootstrap-better-nav.min.css" crossorigin="anonymous">
     <link rel="stylesheet" href="../assets/css/styles.min.css">
+    <style>
+        .navbar-dashboard {
+            background: #ffffff !important;
+            border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+            box-shadow: none;
+            padding: 10px 0;
+        }
+
+        .nav2 {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .nav-item {
+            position: relative;
+        }
+
+        .navlink2, .nav-link {
+            color: #1f2937 !important;
+            font-weight: 600;
+            font-size: 0.94rem;
+            padding: 10px 14px !important;
+            border-radius: 10px;
+            transition: color 0.2s ease, background-color 0.2s ease;
+        }
+
+        .navlink2:hover, .nav-link:hover {
+            color: #2a30fe !important;
+            background: #f3f4f6;
+        }
+
+        .navlink2.active, .nav-link.active {
+            color: #ffffff !important;
+            background: linear-gradient(135deg, #2a30fe, #3b82f6);
+            box-shadow: none;
+        }
+
+        .badge-primary {
+            background: #2a30fe !important;
+            font-size: 11px;
+            padding: 4px 8px !important;
+            box-shadow: none;
+        }
+
+        .navbar-toggler {
+            border: none;
+        }
+
+        .dashboard-icon {
+            font-size: 24px;
+            color: #2a30fe;
+        }
+
+        .pill-counter {
+            margin-left: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .nav2 {
+                width: 100%;
+                display: block;
+            }
+
+            .nav-item {
+                width: 100%;
+            }
+
+            .navlink2, .nav-link {
+                padding: 12px 12px !important;
+            }
+        }
+        /* Investment Plans Styling */
+        .plan-card {
+            border: 2px solid #e0e7ff;
+            border-radius: 12px;
+            background: #f8fafc;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .plan-card:hover {
+            border-color: #2a30fe;
+            box-shadow: 0 10px 30px rgba(42, 48, 254, 0.2);
+            transform: translateY(-5px);
+        }
+
+        .plan-card input[type="radio"]:checked + .plan-card,
+        .plan-card.active {
+            border-color: #2a30fe;
+            background: linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 100%);
+            box-shadow: 0 15px 40px rgba(42, 48, 254, 0.3);
+        }
+
+        .plan-amount {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2a30fe;
+            margin: 10px 0;
+        }
+
+        .plan-h {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1800b0;
+            margin-bottom: 10px;
+        }
+
+        .plan-icon {
+            font-size: 32px;
+            color: #2a30fe;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(42, 48, 254, 0.1);
+            border-radius: 8px;
+        }
+
+        .plan-p {
+            font-size: 14px;
+            color: #4a5568;
+            font-weight: 500;
+        }
+
+        .plan-card-gold {
+            border: 2px solid #ffc107;
+            background: linear-gradient(135deg, #fffbf0 0%, #fff9e6 100%);
+        }
+
+        .plan-card-gold:hover {
+            border-color: #ff9800;
+            box-shadow: 0 10px 30px rgba(255, 152, 0, 0.2);
+        }
+
+        .plan-card-gold .plan-amount {
+            color: #ff9800;
+        }
+
+        .plan-card-gold .plan-h {
+            color: #ff9800;
+        }
+
+        .plan-card-gold .plan-icon {
+            background: rgba(255, 152, 0, 0.1);
+            color: #ff9800;
+        }
+
+        /* Purchase Button Styling */
+        .btn3 {
+            background: linear-gradient(135deg, #2a30fe 0%, #1800b0 100%) !important;
+            color: #fff !important;
+            font-weight: 600;
+            padding: 10px 20px !important;
+            border-radius: 6px !important;
+            border: none !important;
+            font-size: 14px;
+            letter-spacing: 0.5px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            box-shadow: 0 4px 15px rgba(42, 48, 254, 0.3);
+            cursor: pointer !important;
+            display: block;
+            width: 100%;
+        }
+
+        .btn3:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(42, 48, 254, 0.4);
+            background: linear-gradient(135deg, #1800b0 0%, #0d0055 100%) !important;
+            color: #fff !important;
+        }
+
+        .btn3:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 10px rgba(42, 48, 254, 0.3);
+        }
+
+        /* Responsive Grid */
+        @media (max-width: 1200px) {
+            .col-lg-4 {
+                flex: 0 0 50%;
+                max-width: 50%;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .col-lg-4 {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+
+            .plan-card {
+                margin-bottom: 15px;
+            }
+
+            .plan-h {
+                font-size: 16px;
+            }
+
+            .plan-amount {
+                font-size: 20px;
+            }
+        }
+
+        body.dashboard-body {
+            background: #f5f7fb;
+            color: #1f2937;
+        }
+
+        .dashboard-heading-h {
+            color: #1f2937;
+            font-size: 1.75rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+
+        .card-bg {
+            background: transparent;
+            border: none;
+        }
+
+        .card1 {
+            background: rgba(255, 255, 255, 0.85);
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            border-radius: 14px;
+            box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .card1:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
+        }
+
+        .card-body {
+            padding: 1.25rem 1.2rem;
+        }
+
+        .card-body > span {
+            display: inline-block;
+            color: #64748b;
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 0.09em;
+            text-transform: uppercase;
+        }
+
+        .table {
+            border-collapse: separate;
+            border-spacing: 0 10px;
+        }
+
+        .table thead th {
+            color: #64748b;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            border: none;
+            padding-bottom: 10px;
+        }
+
+        .table tbody tr {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(15, 23, 42, 0.03);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .table tbody tr:hover {
+            transform: translateX(2px);
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+        }
+
+        .table tbody td {
+            border: none;
+            padding: 0.9rem 1rem;
+            color: #334155;
+            font-weight: 400;
+            vertical-align: middle;
+        }
+
+        .table-p,
+        .plan-p,
+        .body-p {
+            color: #475569;
+            font-weight: 400;
+        }
+
+        .btn3,
+        .btn1 {
+            transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+        }
+
+        .btn3:hover,
+        .btn1:hover {
+            transform: translateY(-1px);
+        }
+    </style>
 </head>
 
 <body class="dashboard-body">
+    <script>
+        // Handle purchase button clicks
+        function purchasePlan(planName, planAmount) {
+            const planData = {
+                name: planName,
+                amount: planAmount
+            };
+            localStorage.setItem('selectedPlan', JSON.stringify(planData));
+            window.location.href = 'checkout.html';
+        }
+    </script>
     <div class="modal fade" role="dialog" tabindex="-1" id="makeinvestment">
         <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content"><div class="modal-header">
@@ -26,99 +339,133 @@
                 <div class="modal-body">
                     <p class="body-p">Click on any of the <strong>plans</strong> to select it</p>
                     <form id="investform">
-                        <p class="text-center bg-red pt-2 pb-2"><strong>Your wallet balance is too low to purchase this plan!</strong></p>
-                        <hr>
                         <div class="form-row">
-                            <div class="col-md-6 mb-3">
+                            <!-- Plan 1: Starter -->
+                            <div class="col-md-6 col-lg-4 mb-3">
                                 <div class="form-group"><input type="radio" class="invest-radio" name="investradio">
-                                    <!-- Start: Card -->
                                     <div class="p-4 plan-card">
-                                        <div class="plan-div" style="box-shadow: 8px 9px rgba(42,48,254,0.1);"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-briefcase plan-icon">
-  <path fill-rule="evenodd" d="M0 12.5A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-6h-1v6a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5v-6H0v6z"></path>
-  <path fill-rule="evenodd" d="M0 4.5A1.5 1.5 0 0 1 1.5 3h13A1.5 1.5 0 0 1 16 4.5v2.384l-7.614 2.03a1.5 1.5 0 0 1-.772 0L0 6.884V4.5zM1.5 4a.5.5 0 0 0-.5.5v1.616l6.871 1.832a.5.5 0 0 0 .258 0L15 6.116V4.5a.5.5 0 0 0-.5-.5h-13zM5 2.5A1.5 1.5 0 0 1 6.5 1h3A1.5 1.5 0 0 1 11 2.5V3h-1v-.5a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 0-.5.5V3H5v-.5z"></path>
-</svg></div>
-                                        <h5 class="plan-h mt-4">Trader Pro</h5>
+                                        <div class="plan-div"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-star plan-icon"><path d="M2.866 14.85l-.246.434a.5.5 0 0 0 .908.06l.414-.828 2.025.504a.5.5 0 0 0 .422-.863l-2.12-2.12a.5.5 0 0 0-.708.708l.707.707.708-.707a.5.5 0 0 0-.708-.708l-2.12 2.12a.5.5 0 0 0 .141.875.5.5 0 0 0 .142-.024l.414-.828 2.025.504a.5.5 0 0 0 .422-.863l-2.12-2.12z"></path><path d="M15.854 5.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0zM8 1a.5.5 0 0 1 .707 0l2.828 2.829a.5.5 0 1 1-.707.707L8.707 2.414 5.879 5.243a.5.5 0 1 1-.707-.707L8 1z"></path></svg></div>
+                                        <h5 class="plan-h mt-3">Starter</h5>
+                                        <p class="plan-amount">₹5,000</p>
                                         <ul class="list-unstyled">
-                                            <li class="plan-p mb-2"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-check-circle-fill mr-2 plan-icon2">
-  <path fill-rule="evenodd" d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"></path>
-</svg>3.01% Daily</li>
-                                            <li class="plan-p mb-2"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-check-circle-fill mr-2 plan-icon2">
-  <path fill-rule="evenodd" d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"></path>
-</svg>Min: $15000 - Max: $50000</li>
-                                            <li class="plan-p mb-2"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-check-circle-fill mr-2 plan-icon2">
-  <path fill-rule="evenodd" d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"></path>
-</svg>Contract 300 Days</li>
-                                            <li class="plan-p mb-2"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-check-circle-fill mr-2 plan-icon2">
-  <path fill-rule="evenodd" d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"></path>
-</svg>Daily Payout</li>
-                                            <li class="plan-p mb-2"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-check-circle-fill mr-2 plan-icon2">
-  <path fill-rule="evenodd" d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"></path>
-</svg>Top Up Available</li>
+                                            <li class="plan-p mb-2"><i class="la la-check text-success mr-2"></i><strong>5%</strong> Return</li>
+                                            <li class="plan-p mb-2"><i class="la la-clock-o text-success mr-2"></i>7 Days</li>
+                                            <li class="plan-p mb-2"><i class="la la-rupee text-success mr-2"></i>Min: ₹5,000</li>
+                                            <li class="plan-p mb-2"><i class="la la-check text-success mr-2"></i>Daily Payout</li>
                                         </ul>
+                                        <button class="btn btn3 btn-block mt-3" type="button" onclick="purchasePlan('Starter', '₹5,000')">Purchase This Plan</button>
                                     </div>
-                                    <!-- End: Card -->
                                 </div>
                             </div>
-                            <div class="col-md-6 mb-3">
+
+                            <!-- Plan 2: Growth -->
+                            <div class="col-md-6 col-lg-4 mb-3">
                                 <div class="form-group"><input type="radio" class="invest-radio" name="investradio">
-                                    <!-- Start: Card -->
                                     <div class="p-4 plan-card">
-                                        <div class="plan-div" style="box-shadow: 8px 9px rgba(42,48,254,0.1);"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-bar-chart plan-icon">
-  <path fill-rule="evenodd" d="M4 11H2v3h2v-3zm5-4H7v7h2V7zm5-5h-2v12h2V2zm-2-1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1h-2zM6 7a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7zm-5 4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1v-3z"></path>
-</svg></div>
-                                        <h5 class="plan-h mt-4">Trader Max</h5>
+                                        <div class="plan-div"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-graph-up plan-icon"><path d="M0 0h1v15h15v1H0V0zm10 3.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4.9l-3.613 4.417a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61L13.445 4h-2.945a.5.5 0 0 1-.5-.5z"></path></svg></div>
+                                        <h5 class="plan-h mt-3">Growth</h5>
+                                        <p class="plan-amount">₹15,000</p>
                                         <ul class="list-unstyled">
-                                            <li class="plan-p mb-2"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-check-circle-fill mr-2 plan-icon2">
-  <path fill-rule="evenodd" d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"></path>
-</svg>3.8% Daily</li>
-                                            <li class="plan-p mb-2"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-check-circle-fill mr-2 plan-icon2">
-  <path fill-rule="evenodd" d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"></path>
-</svg>Min: $50000 - Max: $150000</li>
-                                            <li class="plan-p mb-2"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-check-circle-fill mr-2 plan-icon2">
-  <path fill-rule="evenodd" d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"></path>
-</svg>Contract 300 Days</li>
-                                            <li class="plan-p mb-2"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-check-circle-fill mr-2 plan-icon2">
-  <path fill-rule="evenodd" d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"></path>
-</svg>Daily Payout</li>
-                                            <li class="plan-p mb-2"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-check-circle-fill mr-2 plan-icon2">
-  <path fill-rule="evenodd" d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"></path>
-</svg>Top Up Available</li>
+                                            <li class="plan-p mb-2"><i class="la la-check text-success mr-2"></i><strong>20%</strong> Return</li>
+                                            <li class="plan-p mb-2"><i class="la la-clock-o text-success mr-2"></i>30 Days</li>
+                                            <li class="plan-p mb-2"><i class="la la-rupee text-success mr-2"></i>Min: ₹15,000</li>
+                                            <li class="plan-p mb-2"><i class="la la-check text-success mr-2"></i>Daily Payout</li>
                                         </ul>
+                                        <button class="btn btn3 btn-block mt-3" type="button" onclick="purchasePlan('Growth', '₹15,000')">Purchase This Plan</button>
                                     </div>
-                                    <!-- End: Card -->
                                 </div>
                             </div>
-                            <div class="col-md-6 mb-3">
+
+                            <!-- Plan 3: Premium -->
+                            <div class="col-md-6 col-lg-4 mb-3">
                                 <div class="form-group"><input type="radio" class="invest-radio" name="investradio">
-                                    <!-- Start: Card -->
                                     <div class="p-4 plan-card">
-                                        <div class="plan-div" style="box-shadow: 8px 9px rgba(42,48,254,0.1);"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-bounding-box-circles plan-icon">
-  <path fill-rule="evenodd" d="M2 1a1 1 0 1 0 0 2 1 1 0 0 0 0-2zM0 2a2 2 0 0 1 3.937-.5h8.126A2 2 0 1 1 14.5 3.937v8.126a2 2 0 1 1-2.437 2.437H3.937A2 2 0 1 1 1.5 12.063V3.937A2 2 0 0 1 0 2zm2.5 1.937v8.126c.703.18 1.256.734 1.437 1.437h8.126a2.004 2.004 0 0 1 1.437-1.437V3.937A2.004 2.004 0 0 1 12.063 2.5H3.937A2.004 2.004 0 0 1 2.5 3.937zM14 1a1 1 0 1 0 0 2 1 1 0 0 0 0-2zM2 13a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm12 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"></path>
-</svg></div>
-                                        <h5 class="plan-h mt-4">Professional</h5>
+                                        <div class="plan-div"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-gem plan-icon"><path d="M3.1.7a.5.5 0 0 1 .55-.115l7.383 3.691a.5.5 0 0 1 .242.6l-1.51 4.26a.5.5 0 0 0 .104.535l3.905 3.905a.5.5 0 1 1-.707.707L8.793 9.304l-4.26 1.51a.5.5 0 0 1-.6-.242L.615 3.65a.5.5 0 0 1 .115-.55l2.381-2.381zm1.414-1.414L5 2.086 8.586 5.5 5 8.914 4.514 8.5 2.086 6l1.414-1.414 1 1 2.5-2.5-1-1z"></path></svg></div>
+                                        <h5 class="plan-h mt-3">Premium</h5>
+                                        <p class="plan-amount">₹25,000</p>
                                         <ul class="list-unstyled">
-                                            <li class="plan-p mb-2"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-check-circle-fill mr-2 plan-icon2">
-  <path fill-rule="evenodd" d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"></path>
-</svg>2.05% Daily</li>
-                                            <li class="plan-p mb-2"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-check-circle-fill mr-2 plan-icon2">
-  <path fill-rule="evenodd" d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"></path>
-</svg>Min: $5000 - Max: $10000</li>
-                                            <li class="plan-p mb-2"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-check-circle-fill mr-2 plan-icon2">
-  <path fill-rule="evenodd" d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"></path>
-</svg>Contract 300 Days</li>
-                                            <li class="plan-p mb-2"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-check-circle-fill mr-2 plan-icon2">
-  <path fill-rule="evenodd" d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"></path>
-</svg>Daily Payout</li>
-                                            <li class="plan-p mb-2"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-check-circle-fill mr-2 plan-icon2">
-  <path fill-rule="evenodd" d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"></path>
-</svg>Top Up Available</li>
+                                            <li class="plan-p mb-2"><i class="la la-check text-success mr-2"></i><strong>30%</strong> Return</li>
+                                            <li class="plan-p mb-2"><i class="la la-clock-o text-success mr-2"></i>45 Days</li>
+                                            <li class="plan-p mb-2"><i class="la la-rupee text-success mr-2"></i>Min: ₹25,000</li>
+                                            <li class="plan-p mb-2"><i class="la la-check text-success mr-2"></i>Daily Payout</li>
                                         </ul>
+                                        <button class="btn btn3 btn-block mt-3" type="button" onclick="purchasePlan('Premium', '₹25,000')">Purchase This Plan</button>
                                     </div>
-                                    <!-- End: Card -->
+                                </div>
+                            </div>
+
+                            <!-- Plan 4: Elite -->
+                            <div class="col-md-6 col-lg-4 mb-3">
+                                <div class="form-group"><input type="radio" class="invest-radio" name="investradio">
+                                    <div class="p-4 plan-card">
+                                        <div class="plan-div"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-crown plan-icon"><path d="M10.854 7.448L15.379 1.9a.5.5 0 0 0-.699-.698l-3.468 3.468L8 0l1.356 4.67-3.468-3.468a.5.5 0 0 0-.699.698l4.525 5.548H3.5a.5.5 0 0 0-.5.5v2a.5.5 0 0 0 .5.5h10a.5.5 0 0 0 .5-.5v-2a.5.5 0 0 0-.5-.5h-3.146z"></path></svg></div>
+                                        <h5 class="plan-h mt-3">Elite</h5>
+                                        <p class="plan-amount">₹35,000</p>
+                                        <ul class="list-unstyled">
+                                            <li class="plan-p mb-2"><i class="la la-check text-success mr-2"></i><strong>40%</strong> Return</li>
+                                            <li class="plan-p mb-2"><i class="la la-clock-o text-success mr-2"></i>60 Days</li>
+                                            <li class="plan-p mb-2"><i class="la la-rupee text-success mr-2"></i>Min: ₹35,000</li>
+                                            <li class="plan-p mb-2"><i class="la la-check text-success mr-2"></i>Daily Payout</li>
+                                        </ul>
+                                        <button class="btn btn3 btn-block mt-3" type="button" onclick="purchasePlan('Elite', '₹35,000')">Purchase This Plan</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Plan 5: Diamond -->
+                            <div class="col-md-6 col-lg-4 mb-3">
+                                <div class="form-group"><input type="radio" class="invest-radio" name="investradio">
+                                    <div class="p-4 plan-card">
+                                        <div class="plan-div"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-diamond plan-icon"><path d="M6.95.435c.58-.58 1.52-.58 2.1 0l5.612 5.612a1.5 1.5 0 0 1 0 2.121L8.05 15.565a1.5 1.5 0 0 1-2.12 0L.436 9.953a1.5 1.5 0 0 1 0-2.12L6.95.435zm1.06.435L2.1 6.9a.5.5 0 0 0 0 .707l5.054 5.053a.5.5 0 0 0 .708 0l5.054-5.053a.5.5 0 0 0 0-.707L8.006.87a.5.5 0 0 0-.707 0z"></path></svg></div>
+                                        <h5 class="plan-h mt-3">Diamond</h5>
+                                        <p class="plan-amount">₹50,000</p>
+                                        <ul class="list-unstyled">
+                                            <li class="plan-p mb-2"><i class="la la-check text-success mr-2"></i><strong>60%</strong> Return</li>
+                                            <li class="plan-p mb-2"><i class="la la-clock-o text-success mr-2"></i>70 Days</li>
+                                            <li class="plan-p mb-2"><i class="la la-rupee text-success mr-2"></i>Min: ₹50,000</li>
+                                            <li class="plan-p mb-2"><i class="la la-check text-success mr-2"></i>Daily Payout</li>
+                                        </ul>
+                                        <button class="btn btn3 btn-block mt-3" type="button" onclick="purchasePlan('Diamond', '₹50,000')">Purchase This Plan</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Plan 6: Platinum -->
+                            <div class="col-md-6 col-lg-4 mb-3">
+                                <div class="form-group"><input type="radio" class="invest-radio" name="investradio">
+                                    <div class="p-4 plan-card">
+                                        <div class="plan-div"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-lightning-fill plan-icon"><path d="M5.006 5a.5.5 0 1 0 0-1H3.5A1.5 1.5 0 0 0 2 5.5v.006h3.006zM8 7a.5.5 0 0 0-.5-.5H5v1h2.5a.5.5 0 0 0 .5-.5v-.5zM3.5 6a.5.5 0 0 0 0 1H5V6H3.5z"></path><path d="m12.596 8.697-2.17 3.868a.5.5 0 0 0 .431.767H12a1.5 1.5 0 1 1 0 3h-.643a.5.5 0 0 0-.424.765l1.414 2.02a.5.5 0 0 0 .836-.106l6.427-7.793c.364-.431-.448-1.365-.982-.91l-1.622 1.44-1.513-1.592a.5.5 0 0 0-.785.025z"></path></svg></div>
+                                        <h5 class="plan-h mt-3">Platinum</h5>
+                                        <p class="plan-amount">₹95,000</p>
+                                        <ul class="list-unstyled">
+                                            <li class="plan-p mb-2"><i class="la la-check text-success mr-2"></i><strong>80%</strong> Return</li>
+                                            <li class="plan-p mb-2"><i class="la la-clock-o text-success mr-2"></i>85 Days</li>
+                                            <li class="plan-p mb-2"><i class="la la-rupee text-success mr-2"></i>Min: ₹95,000</li>
+                                            <li class="plan-p mb-2"><i class="la la-check text-success mr-2"></i>Daily Payout</li>
+                                        </ul>
+                                        <button class="btn btn3 btn-block mt-3" type="button" onclick="purchasePlan('Platinum', '₹95,000')">Purchase This Plan</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Plan 7: Gold Premium -->
+                            <div class="col-md-6 col-lg-4 mb-3">
+                                <div class="form-group"><input type="radio" class="invest-radio" name="investradio">
+                                    <div class="p-4 plan-card plan-card-gold">
+                                        <div class="plan-div"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-stars plan-icon"><path d="M7.657 6.247c.11-.33.576-.33.686 0l.645 1.937a2.89 2.89 0 0 0 1.829 1.828l1.936.645c.33.11.33.576 0 .686l-1.937.645a2.89 2.89 0 0 0-1.828 1.829l-.645 1.936a.361.361 0 0 1-.686 0l-.645-1.937a2.89 2.89 0 0 0-1.828-1.828l-1.937-.645a.361.361 0 0 1 0-.686l1.937-.645a2.89 2.89 0 0 0 1.828-1.828l.645-1.937zM3.794 1.148a.217.217 0 0 1 .412 0l.387 1.162c.173.518.579.924 1.097 1.097l1.162.387a.217.217 0 0 1 0 .412l-1.162.387A1.734 1.734 0 0 0 4.593 5.69l-.387 1.162a.217.217 0 0 1-.412 0L3.407 5.69A1.734 1.734 0 0 0 2.31 4.593l-1.162-.387a.217.217 0 0 1 0-.412l1.162-.387A1.734 1.734 0 0 0 3.407 2.31l.387-1.162zM10.863.099a.145.145 0 0 1 .274 0l.258.774c.115.346.386.617.732.732l.774.258a.145.145 0 0 1 0 .274l-.774.258a1.156 1.156 0 0 0-.732.732l-.258.774a.145.145 0 0 1-.274 0l-.258-.774a1.156 1.156 0 0 0-.732-.732l-.774-.258a.145.145 0 0 1 0-.274l.774-.258c.346-.115.617-.386.732-.732L10.863.1z"></path></svg></div>
+                                        <h5 class="plan-h mt-3">Gold Premium</h5>
+                                        <p class="plan-amount">₹120,000</p>
+                                        <ul class="list-unstyled">
+                                            <li class="plan-p mb-2"><i class="la la-check text-success mr-2"></i><strong>100%</strong> Return</li>
+                                            <li class="plan-p mb-2"><i class="la la-clock-o text-success mr-2"></i>100 Days</li>
+                                            <li class="plan-p mb-2"><i class="la la-rupee text-success mr-2"></i>Min: ₹120,000</li>
+                                            <li class="plan-p mb-2"><i class="la la-check text-success mr-2"></i>Daily Payout</li>
+                                        </ul>
+                                        <button class="btn btn3 btn-block mt-3" type="button" onclick="purchasePlan('Gold Premium', '₹120,000')">Purchase This Plan</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="form-group mt-4 text-center"><button class="btn btn3" type="submit">Purchase This Plan</button></div>
                     </form>
                 </div>
             </div>
@@ -129,16 +476,16 @@
             <div
                 class="collapse navbar-collapse" id="navcol-1">
                 <ul class="nav navbar-nav pt-3 pb-3 nav2 pl-3">
-                    <li class="nav-item mr-4"><a class="nav-link active navlink2" href="../user/index.html">Dashboard</a></li>
+                    <li class="nav-item mr-4"><a class="nav-link navlink2" href="../user/index.html">Dashboard</a></li>
                     <li class="nav-item mr-4"><a class="nav-link navlink2" href="../user/wallet.html">Wallet</a></li>
-                    <li class="nav-item mr-4"><a class="nav-link navlink2" href="../user/investment.html">Investment</a></li>
+                    <li class="nav-item mr-4"><a class="nav-link active navlink2" href="../user/investment.html">Investment</a></li>
                     <li class="nav-item mr-4"><a class="nav-link navlink2" href="../user/withdrawals.html">Withdrawals</a></li>
                     <li class="nav-item mr-4"><a class="nav-link navlink2" href="../user/messages.html">Messages<span class="badge badge-pill badge-primary pill-counter">42</span></a></li>
                 </ul>
                 <ul class="nav navbar-nav ml-auto pt-3 pb-3 nav2 pl-3">
                     <li class="nav-item mr-4">
                         <div class="nav-item dropdown"><a class="dropdown-toggle" data-toggle="dropdown" aria-expanded="false" href="#"><img class="mr-2" src="../assets/img/client03.png" width="30">My Profile</a>
-                            <div class="dropdown-menu"><a class="dropdown-item pt-3 pb-3" href="../user/profile-settings.html">Profile &amp; Settings</a><a class="dropdown-item pt-3 pb-3" href="../index-old.html">Log Out</a></div>
+                            <div class="dropdown-menu"><a class="dropdown-item pt-3 pb-3" href="../user/profile-settings.html">Profile &amp; Settings</a><a class="dropdown-item pt-3 pb-3" href="../home.html">Log Out</a></div>
                         </div>
                     </li>
                 </ul>
@@ -164,7 +511,7 @@
                         <div class="col-md-4 mb-3">
                             <div class="card card1">
                                 <div class="card-body"><span class="mb-3">Wallet Balance</span>
-                                    <h1 class="dashboard-heading-h">$1,300,000<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-arrow-up green-up">
+                                    <h1 id="investmentWalletBalanceValue" class="dashboard-heading-h">NPR 0<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-arrow-up green-up">
   <path fill-rule="evenodd" d="M8 15a.5.5 0 0 0 .5-.5V2.707l3.146 3.147a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L7.5 2.707V14.5a.5.5 0 0 0 .5.5z"></path>
 </svg></h1>
                                 </div>
@@ -173,7 +520,7 @@
                         <div class="col-md-4 mb-3">
                             <div class="card card1">
                                 <div class="card-body"><span class="mb-3">Invested</span>
-                                    <h1 class="dashboard-heading-h">$300,000<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-plus green-plus text-success">
+                                    <h1 id="investmentInvestedValue" class="dashboard-heading-h">NPR 0<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-plus green-plus text-success">
   <path fill-rule="evenodd" d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"></path>
 </svg></h1>
                                 </div>
@@ -182,7 +529,7 @@
                         <div class="col-md-4 mb-3">
                             <div class="card card1">
                                 <div class="card-body"><span class="mb-3">Withdrawn</span>
-                                    <h1 class="dashboard-heading-h">$500,424<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-arrow-down red-down">
+                                    <h1 id="investmentWithdrawnValue" class="dashboard-heading-h">NPR 0<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-arrow-down red-down">
   <path fill-rule="evenodd" d="M8 1a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 13.293V1.5A.5.5 0 0 1 8 1z"></path>
 </svg></h1>
                                 </div>
@@ -200,46 +547,15 @@
                                     <th>#</th>
                                     <th>Ref. No</th>
                                     <th>Amount</th>
-                                    <th>Profit<br></th>
-                                    <th>Plan (Payout %)</th>
+                                    <th>Status<br></th>
+                                    <th>Plan</th>
                                     <th>Date</th>
                                     <th></th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="investmentTableBody">
                                 <tr>
-                                    <td>01</td>
-                                    <td><a href="investment-details.html">012345678</a></td>
-                                    <td>
-                                        <p class="text-nowrap table-p">$10,000</p>
-                                    </td>
-                                    <td>
-                                        <p class="text-nowrap table-p green"><strong>$4,000</strong></p>
-                                    </td>
-                                    <td>
-                                        <p class="text-nowrap table-p green"><strong>Trader Pro (+1.50%)</strong></p>
-                                    </td>
-                                    <td>
-                                        <p class="text-nowrap table-p">2020-07-03 23:45</p>
-                                    </td>
-                                    <td><a class="btn btn-sm topbtn" role="button" href="top.html">Top Up</a></td>
-                                </tr>
-                                <tr>
-                                    <td>02</td>
-                                    <td><a href="investment-details.html">3193199393</a></td>
-                                    <td>
-                                        <p class="text-nowrap table-p">$1,000</p>
-                                    </td>
-                                    <td>
-                                        <p class="text-nowrap table-p green"><strong>$2,310</strong></p>
-                                    </td>
-                                    <td>
-                                        <p class="text-nowrap table-p green"><strong>Basic Pro (+1.00%)</strong><br></p>
-                                    </td>
-                                    <td>
-                                        <p class="text-nowrap table-p">2020-07-03 20:12</p>
-                                    </td>
-                                    <td><a class="btn btn-sm topbtn" role="button" href="top.html">Top Up</a></td>
+                                    <td colspan="7">Loading investments...</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -248,6 +564,7 @@
             </div>
         </div>
     </div>
+    <script src="../supabase-config.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.datatables.net/v/bs4/jszip-2.5.0/dt-1.10.21/b-1.6.2/b-colvis-1.6.2/b-html5-1.6.2/b-print-1.6.2/cr-1.5.2/fc-3.3.1/fh-3.1.7/kt-2.5.2/r-2.2.5/sc-2.0.2/sp-1.1.1/datatables.min.js" crossorigin="anonymous"></script>
@@ -257,6 +574,120 @@
     <script src="https://cdn.jsdelivr.net/npm/typed.js@2.0.9"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.4.1/jquery.easing.min.js"></script>
     <script src="../assets/js/script.min.js"></script>
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+        const supabase = createClient(window.CAPITALNEST_SUPABASE.url, window.CAPITALNEST_SUPABASE.anonKey, {
+            auth: { persistSession: true, autoRefreshToken: true }
+        });
+        window.CAPITALNEST_SUPABASE_CLIENT = supabase;
+    </script>
+    <script>
+        function formatCurrency(amount) {
+            const numericAmount = Number(amount || 0);
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'NPR',
+                maximumFractionDigits: 0
+            }).format(numericAmount);
+        }
+
+        function formatDate(value) {
+            if (!value) return 'N/A';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return value;
+            return date.toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
+        }
+
+        async function loadInvestmentPageData() {
+            const supabase = window.CAPITALNEST_SUPABASE_CLIENT;
+            if (!supabase) return;
+
+            const { data: { user }, error: userError } = await supabase.auth.getUser();
+            if (userError || !user) {
+                window.location.href = '../login.html';
+                return;
+            }
+
+            const [{ data: transactions = [] }, { data: investmentsFromTable = [] }] = await Promise.all([
+                supabase.from('transactions').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+                supabase.from('user_investments').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
+            ]);
+
+            const investmentTransactions = transactions.filter((tx) => ((tx.type || '').toLowerCase() === 'investment') && !['pending', 'rejected', 'failed'].includes((tx.status || '').toLowerCase()));
+            const investments = (investmentsFromTable.length ? investmentsFromTable : investmentTransactions.map((transaction) => ({
+                    id: transaction.id,
+                    user_id: transaction.user_id,
+                    plan_name: transaction.note ? transaction.note.split(':')[1]?.trim() || 'Investment' : 'Investment',
+                    amount: Number(transaction.amount || 0),
+                    duration_days: 0,
+                    status: transaction.status || 'active',
+                    created_at: transaction.created_at
+                }))).filter((item) => !['pending', 'rejected', 'failed'].includes((item.status || '').toLowerCase()));
+
+            let totalWithdrawn = 0;
+            transactions.forEach((tx) => {
+                if ((tx.type || '').toLowerCase() === 'withdrawal') {
+                    totalWithdrawn += Number(tx.amount || 0);
+                }
+            });
+
+            const totalInvested = investments.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+            const totalDeposits = transactions
+                .filter((tx) => ['deposit', 'welcome_bonus', 'bonus', 'refund'].includes((tx.type || '').toLowerCase()))
+                .reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+            const walletBalance = Math.max(totalDeposits - totalWithdrawn - totalInvested, 0);
+
+            document.getElementById('investmentWalletBalanceValue').textContent = formatCurrency(walletBalance);
+            document.getElementById('investmentInvestedValue').textContent = formatCurrency(totalInvested);
+            document.getElementById('investmentWithdrawnValue').textContent = formatCurrency(totalWithdrawn);
+
+            const investmentTableBody = document.getElementById('investmentTableBody');
+            if (!investments.length) {
+                investmentTableBody.innerHTML = '<tr><td colspan="7">No investments found.</td></tr>';
+                return;
+            }
+
+            investmentTableBody.innerHTML = investments.map((item, index) => `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td><a href="investment-details.html">${(item.id || '').slice(0, 10).toUpperCase() || 'INV'}</a></td>
+                    <td><p class="text-nowrap table-p">${formatCurrency(item.amount)}</p></td>
+                    <td><p class="text-nowrap table-p green"><strong>${item.status || 'Active'}</strong></p></td>
+                    <td><p class="text-nowrap table-p green"><strong>${item.plan_name || 'Plan'}</strong></p></td>
+                    <td><p class="text-nowrap table-p">${formatDate(item.created_at)}</p></td>
+                    <td><a class="btn btn-sm topbtn" role="button" href="top.html">Top Up</a></td>
+                </tr>
+            `).join('');
+        }
+
+        document.addEventListener('DOMContentLoaded', async function () {
+            const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+            const navLinks = document.querySelectorAll('.navlink2');
+
+            navLinks.forEach(function (link) {
+                const href = link.getAttribute('href');
+                if (!href || href.startsWith('#')) return;
+
+                const targetPage = href.split('/').pop();
+                if (targetPage === currentPage) {
+                    link.classList.add('active');
+                } else {
+                    link.classList.remove('active');
+                }
+            });
+
+            navLinks.forEach(function (link) {
+                link.addEventListener('click', function () {
+                    navLinks.forEach(function (item) {
+                        item.classList.remove('active');
+                    });
+                    link.classList.add('active');
+                });
+            });
+
+            await loadInvestmentPageData();
+        });
+    </script>
 </body>
 
 </html>

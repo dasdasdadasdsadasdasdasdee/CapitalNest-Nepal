@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | CapitalNest Nepal</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #0f172a 0%, #1a1d2d 100%);
+            font-family: Arial, Helvetica, sans-serif;
+            color: #1f2937;
+        }
+
+        .auth-shell {
+            width: min(100%, 460px);
+            background: rgba(255,255,255,0.96);
+            border: 1px solid rgba(148, 163, 184, 0.28);
+            border-radius: 18px;
+            box-shadow: 0 22px 55px rgba(15, 23, 42, 0.18);
+            padding: 28px 26px 22px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 18px;
+            padding: 4px 0 12px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+        }
+
+        .brand-mark {
+            width: 160px;
+            height: auto;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .brand-mark img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+
+        .auth-title {
+            text-align: center;
+            font-size: 17px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #111827;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .field-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+
+        .input-box,
+        .password-box {
+            position: relative;
+        }
+
+        .input-box input,
+        .password-box input {
+            width: 100%;
+            height: 48px;
+            border-radius: 12px;
+            border: 1px solid #d1d5db;
+            background: #fff;
+            padding: 0 16px;
+            font-size: 14px;
+            color: #111827;
+            outline: none;
+        }
+
+        .password-box input {
+            padding-right: 44px;
+        }
+
+        .input-box input::placeholder,
+        .password-box input::placeholder {
+            color: #9ca3af;
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            border: 0;
+            background: transparent;
+            color: #6b7280;
+            padding: 0;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .toggle-password svg {
+            width: 18px;
+            height: 18px;
+            display: block;
+        }
+
+        .login-btn {
+            width: 100%;
+            height: 52px;
+            border-radius: 14px;
+            border: 1px solid #3bc6c3;
+            background: #101827;
+            color: rgba(255,255,255,0.8);
+            font-weight: 700;
+            letter-spacing: 0.4px;
+            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-btn::before,
+        .login-btn::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 18px;
+            background: transparent;
+            border-top: 1px solid rgba(27, 214, 190, 0.9);
+            border-bottom: 1px solid rgba(27, 214, 190, 0.9);
+        }
+
+        .login-btn::before {
+            left: 0;
+            border-left: 1px solid rgba(27, 214, 190, 0.9);
+        }
+
+        .login-btn::after {
+            right: 0;
+            border-right: 1px solid rgba(245, 129, 19, 0.9);
+        }
+
+        .login-btn span {
+            position: relative;
+            z-index: 1;
+        }
+
+        .bottom-text {
+            text-align: center;
+            font-size: 14px;
+            color: #4b5563;
+            margin-top: 10px;
+        }
+
+        .bottom-text a {
+            color: #0ea5a5;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .bottom-text a:hover {
+            text-decoration: underline;
+        }
+
+        .home-link {
+            display: inline-block;
+            margin-top: 10px;
+            font-size: 13px;
+            color: #0ea5a5;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .message {
+            display: none;
+            margin-top: 12px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .message.error {
+            display: block;
+            background: rgba(220, 38, 38, 0.08);
+            color: #b91c1c;
+            border: 1px solid rgba(220, 38, 38, 0.18);
+        }
+
+        .message.success {
+            display: block;
+            background: rgba(16, 185, 129, 0.08);
+            color: #047857;
+            border: 1px solid rgba(16, 185, 129, 0.18);
+        }
+
+        .forgot-password {
+            display: inline-block;
+            margin-top: 10px;
+            font-size: 13px;
+            color: #0ea5a5;
+            font-weight: 600;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-shell">
+        <div class="brand">
+            <span class="brand-mark">
+                <img src="assets/img/capitalnest.png" alt="CapitalNest logo">
+            </span>
+        </div>
+
+        <div class="auth-title">Login</div>
+
+        <form id="loginForm">
+            <div>
+                <label class="field-label" for="loginEmail">Email</label>
+                <div class="input-box">
+                    <input id="loginEmail" type="email" placeholder="Please enter your email address" required>
+                </div>
+            </div>
+
+            <div>
+                <label class="field-label" for="password">Password</label>
+                <div class="password-box">
+                    <input id="password" type="password" placeholder="Please enter your password" required>
+                    <button type="button" class="toggle-password" aria-label="Show password" data-target="password">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <button class="login-btn" type="submit"><span>Login</span></button>
+            <div id="loginMessage" class="message" aria-live="polite"></div>
+            <a class="forgot-password" href="forgot-password.html">Forgot password?</a>
+        </form>
+
+        <div class="bottom-text">
+            Don’t have an account? <a href="register.html">Register now</a>
+        </div>
+        <div class="bottom-text">
+            <a class="home-link" href="home.html">← Back to home</a>
+        </div>
+    </div>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+        const supabaseUrl = 'https://mohigobcssqzywmhndml.supabase.co';
+        const supabaseAnonKey = 'sb_publishable_MRVoyKc48ERptjd1G9l08g_3YTAleje';
+        const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+        const form = document.getElementById('loginForm');
+        const message = document.getElementById('loginMessage');
+
+        function showMessage(type, text) {
+            message.className = 'message ' + type;
+            message.textContent = text;
+        }
+
+        document.querySelector('.toggle-password').addEventListener('click', function () {
+            const input = document.getElementById(this.dataset.target);
+            const isPassword = input.type === 'password';
+            input.type = isPassword ? 'text' : 'password';
+        });
+
+        form.addEventListener('submit', async function (event) {
+            event.preventDefault();
+
+            if (!supabaseUrl || supabaseUrl.includes('PASTE_') || !supabaseAnonKey || supabaseAnonKey.includes('PASTE_')) {
+                showMessage('error', 'Please add your Supabase URL and anon key in this page before using login.');
+                return;
+            }
+
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('password').value;
+
+            if (!email || !password) {
+                showMessage('error', 'Please fill in both email and password.');
+                return;
+            }
+
+            try {
+                const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+                if (error) {
+                    showMessage('error', error.message || 'Login failed. Please try again.');
+                    return;
+                }
+
+                showMessage('success', 'Login successful. Redirecting...');
+                setTimeout(function () {
+                    window.location.href = 'user/index.html';
+                }, 800);
+            } catch (error) {
+                showMessage('error', 'Something went wrong. Please try again.');
+            }
+        });
+    </script>
+</body>
+</html>

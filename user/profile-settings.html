@@ -4,9 +4,9 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
-    <title>Sample Invest</title>
+    <title>CapitalNest Nepal</title>
     <meta name="twitter:card" content="summary">
-    <meta property="og:title" content="Sample invest">
+    <meta property="og:title" content="CapitalNest Nepal">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="manifest" href="../manifest.json">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:100,100i,300,300i,400,400i,700,700i,900,900i">
@@ -24,7 +24,7 @@
             <div
                 class="collapse navbar-collapse" id="navcol-1">
                 <ul class="nav navbar-nav pt-3 pb-3 nav2 pl-3">
-                    <li class="nav-item mr-4"><a class="nav-link active navlink2" href="../user/index.html">Dashboard</a></li>
+                    <li class="nav-item mr-4"><a class="nav-link navlink2" href="../user/index.html">Dashboard</a></li>
                     <li class="nav-item mr-4"><a class="nav-link navlink2" href="../user/wallet.html">Wallet</a></li>
                     <li class="nav-item mr-4"><a class="nav-link navlink2" href="../user/investment.html">Investment</a></li>
                     <li class="nav-item mr-4"><a class="nav-link navlink2" href="../user/withdrawals.html">Withdrawals</a></li>
@@ -33,7 +33,7 @@
                 <ul class="nav navbar-nav ml-auto pt-3 pb-3 nav2 pl-3">
                     <li class="nav-item mr-4">
                         <div class="nav-item dropdown"><a class="dropdown-toggle" data-toggle="dropdown" aria-expanded="false" href="#"><img class="mr-2" src="../assets/img/client03.png" width="30">My Profile</a>
-                            <div class="dropdown-menu"><a class="dropdown-item pt-3 pb-3" href="../user/profile-settings.html">Profile &amp; Settings</a><a class="dropdown-item pt-3 pb-3" href="../index-old.html">Log Out</a></div>
+                            <div class="dropdown-menu"><a class="dropdown-item pt-3 pb-3" href="../user/profile-settings.html">Profile &amp; Settings</a><a class="dropdown-item pt-3 pb-3" href="../home.html">Log Out</a></div>
                         </div>
                     </li>
                 </ul>
@@ -75,7 +75,7 @@
                                         <div class="form-group"><button class="btn btn3" type="submit">Upload</button></div>
                                     </form>
                                     <hr class="mt-4 mb-4">
-                                    <form class="mt-4">
+                                    <form id="profileForm" class="mt-4">
                                         <div class="form-group"><label for="fullname">Full Name</label><input class="form-control" type="text" id="fullname-1" autofocus="" autocomplete="on" required=""></div>
                                         <div class="form-group"><label for="email">E-Mail Address</label><input class="form-control" type="email" id="email" autocomplete="on" inputmode="email"></div>
                                         <div class="form-group"><label for="phonenumber">Phone Number</label><input class="form-control" type="tel" id="phonenumber" autocomplete="on" inputmode="tel" minlength="11" maxlength="14" required=""></div>
@@ -91,7 +91,7 @@
                             </div>
                             <div class="row">
                                 <div class="col-md-4">
-                                    <form class="mt-4">
+                                    <form id="passwordForm" class="mt-4">
                                         <div class="form-group"><label for="currpassword">Current Password</label><input class="form-control" type="password" id="currpassword"></div>
                                         <div class="form-group"><label for="newpassword">New Password</label>
                                             <div class="input-group"><input class="form-control pwd" type="password" id="newpassword" required="">
@@ -134,6 +134,7 @@
             </div>
         </div>
     </div>
+    <script src="../supabase-config.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.datatables.net/v/bs4/jszip-2.5.0/dt-1.10.21/b-1.6.2/b-colvis-1.6.2/b-html5-1.6.2/b-print-1.6.2/cr-1.5.2/fc-3.3.1/fh-3.1.7/kt-2.5.2/r-2.2.5/sc-2.0.2/sp-1.1.1/datatables.min.js" crossorigin="anonymous"></script>
@@ -143,6 +144,153 @@
     <script src="https://cdn.jsdelivr.net/npm/typed.js@2.0.9"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.4.1/jquery.easing.min.js"></script>
     <script src="../assets/js/script.min.js"></script>
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+        const supabase = createClient(window.CAPITALNEST_SUPABASE.url, window.CAPITALNEST_SUPABASE.anonKey, {
+            auth: { persistSession: true, autoRefreshToken: true }
+        });
+        window.CAPITALNEST_SUPABASE_CLIENT = supabase;
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async function () {
+            const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+            const navLinks = document.querySelectorAll('.navlink2');
+
+            // Set active link on page load
+            navLinks.forEach(function (link) {
+                const href = link.getAttribute('href');
+                if (!href || href.startsWith('#')) return;
+
+                const targetPage = href.split('/').pop();
+                if (targetPage === currentPage) {
+                    link.classList.add('active');
+                } else {
+                    link.classList.remove('active');
+                }
+            });
+
+            // Add click handler with immediate feedback
+            navLinks.forEach(function (link) {
+                link.addEventListener('click', function (e) {
+                    // Remove active from all links immediately
+                    navLinks.forEach(function (item) {
+                        item.classList.remove('active');
+                    });
+                    // Add active to clicked link immediately
+                    link.classList.add('active');
+                });
+            });
+
+            const supabase = window.CAPITALNEST_SUPABASE_CLIENT;
+            if (!supabase) return;
+
+            const { data: { user }, error: userError } = await supabase.auth.getUser();
+            if (userError || !user) {
+                window.location.href = '../login.html';
+                return;
+            }
+
+            const { data: profile, error: profileError } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', user.id)
+                .single();
+
+            const hasAddressColumn = !!(profile && Object.prototype.hasOwnProperty.call(profile, 'address'));
+
+            if (!profileError && profile) {
+                document.getElementById('fullname-1').value = profile.full_name || '';
+                document.getElementById('email').value = profile.email || user.email || '';
+                document.getElementById('phonenumber').value = profile.phone || '';
+                document.getElementById('address').value = profile.address || '';
+            } else {
+                document.getElementById('email').value = user.email || '';
+            }
+
+            document.getElementById('profileForm').addEventListener('submit', async function (event) {
+                event.preventDefault();
+
+                const fullName = document.getElementById('fullname-1').value.trim();
+                const email = document.getElementById('email').value.trim();
+                const phone = document.getElementById('phonenumber').value.trim();
+                const address = document.getElementById('address').value.trim();
+
+                const profileUpdate = {
+                    id: user.id,
+                    email: email || user.email,
+                    phone: phone || null,
+                    full_name: fullName || null,
+                    updated_at: new Date().toISOString()
+                };
+
+                if (hasAddressColumn) {
+                    profileUpdate.address = address || null;
+                }
+
+                const { error } = await supabase
+                    .from('profiles')
+                    .upsert(profileUpdate, { onConflict: 'id' });
+
+                if (email && email !== user.email) {
+                    const { error: updateEmailError } = await supabase.auth.updateUser({ email });
+                    if (updateEmailError) {
+                        alert('Profile saved, but email change failed: ' + updateEmailError.message);
+                        return;
+                    }
+                }
+
+                if (error) {
+                    alert('Profile update failed: ' + error.message);
+                    return;
+                }
+
+                alert('Profile updated successfully.');
+            });
+
+            document.getElementById('passwordForm').addEventListener('submit', async function (event) {
+                event.preventDefault();
+
+                const currentPassword = document.getElementById('currpassword').value;
+                const newPassword = document.getElementById('newpassword').value;
+                const confirmPassword = document.getElementById('confirmnewpassword').value;
+
+                if (!currentPassword || !newPassword || !confirmPassword) {
+                    alert('Please fill in current, new, and confirm password fields.');
+                    return;
+                }
+
+                if (newPassword !== confirmPassword) {
+                    alert('New password and confirm password do not match.');
+                    return;
+                }
+
+                if (newPassword.length < 6) {
+                    alert('New password must be at least 6 characters.');
+                    return;
+                }
+
+                const { error: signInError } = await supabase.auth.signInWithPassword({
+                    email: user.email,
+                    password: currentPassword
+                });
+
+                if (signInError) {
+                    alert('Current password is incorrect.');
+                    return;
+                }
+
+                const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+
+                if (updateError) {
+                    alert('Password update failed: ' + updateError.message);
+                    return;
+                }
+
+                document.getElementById('passwordForm').reset();
+                alert('Password updated successfully.');
+            });
+        });
+    </script>
 </body>
 
 </html>

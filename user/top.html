@@ -4,9 +4,9 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
-    <title>Sample Invest</title>
+    <title>CapitalNest Nepal</title>
     <meta name="twitter:card" content="summary">
-    <meta property="og:title" content="Sample invest">
+    <meta property="og:title" content="CapitalNest Nepal">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="manifest" href="../manifest.json">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:100,100i,300,300i,400,400i,700,700i,900,900i">
@@ -27,7 +27,7 @@
                     <form id="fundwalletform">
                         <div class="form-row">
                             <div class="col">
-                                <div class="form-group"><label for="paymenttype">Payment Type</label><select class="form-control" id="paymenttype" required=""><optgroup label="Supported Payment Types"><option value="Bitcoin" selected="">Bitcoin</option><option value="Ethereum">Ethereum</option><option value="Litecoin">Litecoin</option></optgroup></select></div>
+                                <div class="form-group"><label for="paymenttype">Payment Type</label><select class="form-control" id="paymenttype" required=""><optgroup label="Supported Payment Types"><option value="Bank Transfer" selected="">Bank Transfer</option><option value="eSewa">eSewa</option><option value="IME Pay">IME Pay</option><option value="Khalti">Khalti</option></optgroup></select></div>
                             </div>
                             <div class="col-lg-8">
                                 <div class="form-group"><label for="fundamount">Amount</label><input class="form-control" type="text" id="fundamount" required="" inputmode="numeric"></div>
@@ -35,8 +35,8 @@
                         </div>
                         <hr>
                         <p class="text-center body-p mb-0">Wallet Address</p>
-                        <p class="text-center bg-yellow pt-2 pb-2"><strong>BITCOIN</strong>: 231CW1V3H1V31HV3H13H13H1</p>
-                        <div class="text-center"><small class="d-block mb-2">Pay <strong>1.002BTC</strong> to the wallet address above or scan to pay using the qrcode below.</small><img class="img-fluid" src="../assets/img/qrcode.png" width="65%"></div>
+                        <p class="text-center bg-yellow pt-2 pb-2"><strong>BANK TRANSFER</strong>: CapitalNest Nepal Account</p>
+                        <div class="text-center"><small class="d-block mb-2">Pay the amount in NPR to the account details above or scan the QR code below.</small><img class="img-fluid" src="../assets/img/qrcode.png" width="65%"></div>
                         <div class="form-group mt-4 text-center"><button class="btn btn3" type="submit">Confirm Deposit</button></div>
                     </form>
                 </div>
@@ -57,7 +57,7 @@
                 <ul class="nav navbar-nav ml-auto pt-3 pb-3 nav2 pl-3">
                     <li class="nav-item mr-4">
                         <div class="nav-item dropdown"><a class="dropdown-toggle" data-toggle="dropdown" aria-expanded="false" href="#"><img class="mr-2" src="../assets/img/client03.png" width="30">My Profile</a>
-                            <div class="dropdown-menu"><a class="dropdown-item pt-3 pb-3" href="../user/profile-settings.html">Profile &amp; Settings</a><a class="dropdown-item pt-3 pb-3" href="../index-old.html">Log Out</a></div>
+                            <div class="dropdown-menu"><a class="dropdown-item pt-3 pb-3" href="../user/profile-settings.html">Profile &amp; Settings</a><a class="dropdown-item pt-3 pb-3" href="../home.html">Log Out</a></div>
                         </div>
                     </li>
                 </ul>
@@ -119,6 +119,45 @@
     <script src="https://cdn.jsdelivr.net/npm/typed.js@2.0.9"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.4.1/jquery.easing.min.js"></script>
     <script src="../assets/js/script.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+            const navLinks = document.querySelectorAll('.navlink2');
+
+            // Set active link on page load
+            navLinks.forEach(function (link) {
+                const href = link.getAttribute('href');
+                if (!href || href.startsWith('#')) return;
+
+                const targetPage = href.split('/').pop();
+                if (targetPage === currentPage) {
+                    link.classList.add('active');
+                } else {
+                    link.classList.remove('active');
+                }
+            });
+
+            // Add click handler with immediate feedback
+            navLinks.forEach(function (link) {
+                link.addEventListener('click', function (e) {
+                    // Remove active from all links immediately
+                    navLinks.forEach(function (item) {
+                        item.classList.remove('active');
+                    });
+                    // Add active to clicked link immediately
+                    link.classList.add('active');
+                });
+            });
+        });
+    </script>
+                    navLinks.forEach(function (item) {
+                        item.classList.remove('active');
+                    });
+                    link.classList.add('active');
+                });
+            });
+        });
+    </script>
 </body>
 
 </html>

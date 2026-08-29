@@ -4,9 +4,9 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
-    <title>Sample Invest</title>
+    <title>CapitalNest Nepal</title>
     <meta name="twitter:card" content="summary">
-    <meta property="og:title" content="Sample invest">
+    <meta property="og:title" content="CapitalNest Nepal">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="manifest" href="../manifest.json">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:100,100i,300,300i,400,400i,700,700i,900,900i">
@@ -16,6 +16,182 @@
     <link rel="stylesheet" href="https://cdn.datatables.net/v/bs4/jszip-2.5.0/dt-1.10.21/b-1.6.2/b-colvis-1.6.2/b-html5-1.6.2/b-print-1.6.2/cr-1.5.2/fc-3.3.1/fh-3.1.7/kt-2.5.2/r-2.2.5/sc-2.0.2/sp-1.1.1/datatables.min.css" crossorigin="anonymous">
     <link rel="stylesheet" href="https://unpkg.com/@bootstrapstudio/bootstrap-better-nav/dist/bootstrap-better-nav.min.css" crossorigin="anonymous">
     <link rel="stylesheet" href="../assets/css/styles.min.css">
+    <style>
+        .navbar-dashboard {
+            background: #ffffff !important;
+            border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+            box-shadow: none;
+            padding: 10px 0;
+        }
+
+        .nav2 {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .nav-item {
+            position: relative;
+        }
+
+        .navlink2, .nav-link {
+            color: #1f2937 !important;
+            font-weight: 600;
+            font-size: 0.94rem;
+            padding: 10px 14px !important;
+            border-radius: 10px;
+            transition: color 0.2s ease, background-color 0.2s ease;
+        }
+
+        .navlink2:hover, .nav-link:hover {
+            color: #2a30fe !important;
+            background: #f3f4f6;
+        }
+
+        .navlink2.active, .nav-link.active {
+            color: #ffffff !important;
+            background: linear-gradient(135deg, #2a30fe, #3b82f6);
+            box-shadow: none;
+        }
+
+        .badge-primary {
+            background: #2a30fe !important;
+            font-size: 11px;
+            padding: 4px 8px !important;
+            box-shadow: none;
+        }
+
+        .navbar-toggler {
+            border: none;
+        }
+
+        .dashboard-icon {
+            font-size: 24px;
+            color: #2a30fe;
+        }
+
+        .pill-counter {
+            margin-left: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .nav2 {
+                width: 100%;
+                display: block;
+            }
+
+            .nav-item {
+                width: 100%;
+            }
+
+            .navlink2, .nav-link {
+                padding: 12px 12px !important;
+            }
+        }
+
+        body.dashboard-body {
+            background: #f5f7fb;
+            color: #1f2937;
+        }
+
+        .dashboard-heading-h {
+            color: #1f2937;
+            font-size: 1.75rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            margin-bottom: 0;
+        }
+
+        .card-bg {
+            background: transparent;
+            border: none;
+        }
+
+        .card1 {
+            background: rgba(255, 255, 255, 0.85);
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            border-radius: 14px;
+            box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .card1:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
+        }
+
+        .card-body {
+            padding: 1.25rem 1.2rem;
+        }
+
+        .card-body > span {
+            display: inline-block;
+            color: #64748b;
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 0.09em;
+            text-transform: uppercase;
+        }
+
+        .table {
+            border-collapse: separate;
+            border-spacing: 0 10px;
+        }
+
+        .table thead th {
+            color: #64748b;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            border: none;
+            padding-bottom: 10px;
+        }
+
+        .table tbody tr {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(15, 23, 42, 0.03);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .table tbody tr:hover {
+            transform: translateX(2px);
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+        }
+
+        .table tbody td {
+            border: none;
+            padding: 0.9rem 1rem;
+            color: #334155;
+            font-weight: 400;
+            vertical-align: middle;
+        }
+
+        .table-p,
+        .date-span,
+        .trx-heading,
+        .body-p,
+        .plan-p {
+            color: #475569;
+            font-weight: 400;
+        }
+
+        .badge-warning {
+            font-weight: 500;
+            letter-spacing: 0.02em;
+        }
+
+        .btn3,
+        .btn1 {
+            transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+        }
+
+        .btn3:hover,
+        .btn1:hover {
+            transform: translateY(-1px);
+        }
+    </style>
 </head>
 
 <body class="dashboard-body">
@@ -27,7 +203,7 @@
                     <form id="fundwalletform">
                         <div class="form-row">
                             <div class="col">
-                                <div class="form-group"><label for="paymenttype">Payment Type</label><select class="form-control" id="paymenttype" required=""><optgroup label="Supported Payment Types"><option value="Bitcoin" selected="">Bitcoin</option><option value="Ethereum">Ethereum</option><option value="Litecoin">Litecoin</option></optgroup></select></div>
+                                <div class="form-group"><label for="paymenttype">Payment Type</label><select class="form-control" id="paymenttype" required=""><optgroup label="Supported Payment Types"><option value="Bank Transfer" selected="">Bank Transfer</option><option value="eSewa">eSewa</option><option value="IME Pay">IME Pay</option><option value="Khalti">Khalti</option></optgroup></select></div>
                             </div>
                             <div class="col-lg-8">
                                 <div class="form-group"><label for="fundamount">Amount</label><input class="form-control" type="text" id="fundamount" required="" inputmode="numeric"></div>
@@ -35,8 +211,8 @@
                         </div>
                         <hr>
                         <p class="text-center body-p mb-0">Wallet Address</p>
-                        <p class="text-center bg-yellow pt-2 pb-2"><strong>BITCOIN</strong>: 231CW1V3H1V31HV3H13H13H1</p>
-                        <div class="text-center"><small class="d-block mb-2">Pay <strong>1.002BTC</strong> to the wallet address above or scan to pay using the qrcode below.</small><img class="img-fluid" src="../assets/img/qrcode.png" width="65%"></div>
+                        <p class="text-center bg-yellow pt-2 pb-2"><strong>BANK TRANSFER</strong>: CapitalNest Nepal Account</p>
+                        <div class="text-center"><small class="d-block mb-2">Pay the amount in NPR to the account details above or scan the QR code below.</small><img class="img-fluid" src="../assets/img/qrcode.png" width="65%"></div>
                         <div class="form-group mt-4 text-center"><button class="btn btn3" type="submit">Confirm Deposit</button></div>
                     </form>
                 </div>
@@ -48,8 +224,8 @@
             <div
                 class="collapse navbar-collapse" id="navcol-1">
                 <ul class="nav navbar-nav pt-3 pb-3 nav2 pl-3">
-                    <li class="nav-item mr-4"><a class="nav-link active navlink2" href="../user/index.html">Dashboard</a></li>
-                    <li class="nav-item mr-4"><a class="nav-link navlink2" href="../user/wallet.html">Wallet</a></li>
+                    <li class="nav-item mr-4"><a class="nav-link navlink2" href="../user/index.html">Dashboard</a></li>
+                    <li class="nav-item mr-4"><a class="nav-link active navlink2" href="../user/wallet.html">Wallet</a></li>
                     <li class="nav-item mr-4"><a class="nav-link navlink2" href="../user/investment.html">Investment</a></li>
                     <li class="nav-item mr-4"><a class="nav-link navlink2" href="../user/withdrawals.html">Withdrawals</a></li>
                     <li class="nav-item mr-4"><a class="nav-link navlink2" href="../user/messages.html">Messages<span class="badge badge-pill badge-primary pill-counter">42</span></a></li>
@@ -57,7 +233,7 @@
                 <ul class="nav navbar-nav ml-auto pt-3 pb-3 nav2 pl-3">
                     <li class="nav-item mr-4">
                         <div class="nav-item dropdown"><a class="dropdown-toggle" data-toggle="dropdown" aria-expanded="false" href="#"><img class="mr-2" src="../assets/img/client03.png" width="30">My Profile</a>
-                            <div class="dropdown-menu"><a class="dropdown-item pt-3 pb-3" href="../user/profile-settings.html">Profile &amp; Settings</a><a class="dropdown-item pt-3 pb-3" href="../index-old.html">Log Out</a></div>
+                            <div class="dropdown-menu"><a class="dropdown-item pt-3 pb-3" href="../user/profile-settings.html">Profile &amp; Settings</a><a class="dropdown-item pt-3 pb-3" href="../home.html">Log Out</a></div>
                         </div>
                     </li>
                 </ul>
@@ -83,7 +259,7 @@
                         <div class="col-md-4 mb-3">
                             <div class="card card1">
                                 <div class="card-body"><span class="mb-3">Wallet Balance</span>
-                                    <h1 class="dashboard-heading-h">$1,300,000<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-arrow-up green-up">
+                                    <h1 id="walletBalanceValue" class="dashboard-heading-h">NPR 0<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-arrow-up green-up">
   <path fill-rule="evenodd" d="M8 15a.5.5 0 0 0 .5-.5V2.707l3.146 3.147a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L7.5 2.707V14.5a.5.5 0 0 0 .5.5z"></path>
 </svg></h1>
                                 </div>
@@ -92,7 +268,7 @@
                         <div class="col-md-4 mb-3">
                             <div class="card card1">
                                 <div class="card-body"><span class="mb-3">Invested</span>
-                                    <h1 class="dashboard-heading-h">$300,000<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-plus green-plus text-success">
+                                    <h1 id="walletInvestedValue" class="dashboard-heading-h">NPR 0<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-plus green-plus text-success">
   <path fill-rule="evenodd" d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"></path>
 </svg></h1>
                                 </div>
@@ -101,7 +277,7 @@
                         <div class="col-md-4 mb-3">
                             <div class="card card1">
                                 <div class="card-body"><span class="mb-3">Withdrawn</span>
-                                    <h1 class="dashboard-heading-h">$500,424<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-arrow-down red-down">
+                                    <h1 id="walletWithdrawnValue" class="dashboard-heading-h">NPR 0<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-arrow-down red-down">
   <path fill-rule="evenodd" d="M8 1a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 13.293V1.5A.5.5 0 0 1 8 1z"></path>
 </svg></h1>
                                 </div>
@@ -124,38 +300,9 @@
                                     <th>Date</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="walletTableBody">
                                 <tr>
-                                    <td>01</td>
-                                    <td>
-                                        <p class="table-p">012345678</p>
-                                    </td>
-                                    <td>
-                                        <p class="text-nowrap table-p">Bitcoin</p>
-                                    </td>
-                                    <td>
-                                        <p class="text-nowrap table-p green"><strong>$4,000</strong></p>
-                                    </td>
-                                    <td><span class="badge badge-pill badge-warning card-badge-g">Verified</span></td>
-                                    <td>
-                                        <p class="text-nowrap table-p">2020-07-03 23:45</p>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>01</td>
-                                    <td>
-                                        <p class="table-p">3193199393</p>
-                                    </td>
-                                    <td>
-                                        <p class="text-nowrap table-p">Ethereum</p>
-                                    </td>
-                                    <td>
-                                        <p class="text-nowrap table-p green"><strong>$2,310</strong></p>
-                                    </td>
-                                    <td><span class="badge badge-pill badge-warning card-badge-b">Pending</span></td>
-                                    <td>
-                                        <p class="text-nowrap table-p">2020-07-03 20:12</p>
-                                    </td>
+                                    <td colspan="6">Loading wallet activity...</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -164,6 +311,7 @@
             </div>
         </div>
     </div>
+    <script src="../supabase-config.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.datatables.net/v/bs4/jszip-2.5.0/dt-1.10.21/b-1.6.2/b-colvis-1.6.2/b-html5-1.6.2/b-print-1.6.2/cr-1.5.2/fc-3.3.1/fh-3.1.7/kt-2.5.2/r-2.2.5/sc-2.0.2/sp-1.1.1/datatables.min.js" crossorigin="anonymous"></script>
@@ -173,6 +321,228 @@
     <script src="https://cdn.jsdelivr.net/npm/typed.js@2.0.9"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.4.1/jquery.easing.min.js"></script>
     <script src="../assets/js/script.min.js"></script>
+    <script src="../assets/js/realtime-balance-sync.js"></script>
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+        import RealtimeBalanceSync from '../assets/js/realtime-balance-sync.js';
+        
+        const supabase = createClient(window.CAPITALNEST_SUPABASE.url, window.CAPITALNEST_SUPABASE.anonKey, {
+            auth: { persistSession: true, autoRefreshToken: true }
+        });
+        window.CAPITALNEST_SUPABASE_CLIENT = supabase;
+        
+        // Initialize real-time sync
+        const balanceSync = new RealtimeBalanceSync(window.CAPITALNEST_SUPABASE.url, window.CAPITALNEST_SUPABASE.anonKey);
+        window.BALANCE_SYNC = balanceSync;
+        
+        // Listen for balance updates
+        balanceSync.on('balance-updated', (newBalance) => {
+            document.getElementById('walletBalanceValue').textContent = formatCurrency(newBalance.available_balance);
+            console.log('💰 Balance updated in real-time:', newBalance);
+        });
+        
+        // Listen for transaction completions
+        balanceSync.on('transaction-completed', (transaction) => {
+            console.log('✅ Transaction completed:', transaction);
+            loadWalletPageData(); // Reload the table
+        });
+        
+        // Listen for payment approvals
+        balanceSync.on('payment-approved', (approval) => {
+            console.log('🎉 Payment approved:', approval);
+            loadWalletPageData();
+        });
+    </script>
+    <script>
+    function formatCurrency(amount) {
+        const numericAmount = Number(amount || 0);
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'NPR',
+            maximumFractionDigits: 0
+        }).format(numericAmount);
+    }
+
+    function formatDate(value) {
+        if (!value) return 'N/A';
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return value;
+        return date.toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
+    }
+
+    async function loadWalletPageData() {
+        const supabase = window.CAPITALNEST_SUPABASE_CLIENT;
+        if (!supabase) return;
+
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError || !user) {
+            window.location.href = '../login.html';
+            return;
+        }
+
+        // Initialize real-time sync for this user
+        if (window.BALANCE_SYNC) {
+            await window.BALANCE_SYNC.init(user.id);
+        }
+
+        const { data: transactions = [] } = await supabase
+            .from('transactions')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false });
+
+        const { data: investments = [] } = await supabase
+            .from('user_investments')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false });
+
+        const approvedInvestments = investments.filter((item) => !['pending', 'rejected', 'failed'].includes((item.status || '').toLowerCase()));
+        const approvedInvestmentTransactions = transactions.filter((tx) => ((tx.type || '').toLowerCase() === 'investment') && !['pending', 'rejected', 'failed'].includes((tx.status || '').toLowerCase()));
+
+        // Get current balance from user_balances table (updated in real-time)
+        const { data: userBalance } = await supabase
+            .from('user_balances')
+            .select('*')
+            .eq('user_id', user.id)
+            .single();
+
+        let totalDeposit = 0;
+        let totalWithdrawal = 0;
+        let totalInvestment = 0;
+
+        transactions.forEach((tx) => {
+            const amount = Number(tx.amount || 0);
+            const type = (tx.type || '').toLowerCase();
+            const status = (tx.status || '').toLowerCase();
+            if (['deposit', 'welcome_bonus', 'bonus', 'refund'].includes(type)) totalDeposit += amount;
+            if (type === 'withdrawal') totalWithdrawal += amount;
+            if (type === 'investment' && !['pending', 'rejected', 'failed'].includes(status)) totalInvestment += amount;
+        });
+
+        const investedAmount = approvedInvestments.reduce((sum, item) => sum + Number(item.amount || 0), 0) + approvedInvestmentTransactions.reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+        const walletBalance = userBalance?.available_balance || Math.max(totalDeposit - totalWithdrawal - totalInvestment, 0);
+
+        document.getElementById('walletBalanceValue').textContent = formatCurrency(walletBalance);
+        document.getElementById('walletInvestedValue').textContent = formatCurrency(investedAmount);
+        document.getElementById('walletWithdrawnValue').textContent = formatCurrency(totalWithdrawal);
+
+        const walletTableBody = document.getElementById('walletTableBody');
+        if (!transactions.length) {
+            walletTableBody.innerHTML = '<tr><td colspan="6">No wallet activity found.</td></tr>';
+            return;
+        }
+
+        walletTableBody.innerHTML = transactions.slice(0, 10).map((tx, index) => {
+            const amount = Number(tx.amount || 0);
+            const type = (tx.type || 'transaction').toLowerCase();
+            const statusClass = (tx.status || 'pending').toLowerCase() === 'pending' ? 'badge badge-pill badge-warning card-badge-b' : 'badge badge-pill badge-warning card-badge-g';
+            return `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td><p class="table-p">${(tx.id || '').slice(0, 10).toUpperCase() || 'N/A'}</p></td>
+                    <td><p class="text-nowrap table-p">${tx.payment_method || tx.type || 'Wallet'}</p></td>
+                    <td><p class="text-nowrap table-p green"><strong>${type === 'withdrawal' ? '-' : ''}${formatCurrency(amount)}</strong></p></td>
+                    <td><span class="${statusClass}">${tx.status || 'Pending'}</span></td>
+                    <td><p class="text-nowrap table-p">${formatDate(tx.created_at)}</p></td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    document.addEventListener('DOMContentLoaded', async function() {
+        const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+        const navLinks = document.querySelectorAll('.navlink2');
+
+        navLinks.forEach(function (link) {
+            const href = link.getAttribute('href');
+            if (!href || href.startsWith('#')) return;
+
+            const targetPage = href.split('/').pop();
+            if (targetPage === currentPage) {
+                link.classList.add('active');
+            } else {
+                link.classList.remove('active');
+            }
+        });
+
+        navLinks.forEach(function (link) {
+            link.addEventListener('click', function () {
+                navLinks.forEach(function (item) {
+                    item.classList.remove('active');
+                });
+                link.classList.add('active');
+            });
+        });
+
+        const supabase = window.CAPITALNEST_SUPABASE_CLIENT;
+        if (!supabase) return;
+
+        $('#fundwalletform').on('submit', async function(e) {
+            e.preventDefault();
+
+            const { data: { user }, error: userError } = await supabase.auth.getUser();
+            if (userError || !user) {
+                alert('Please log in to fund your wallet.');
+                window.location.href = '../login.html';
+                return;
+            }
+
+            const paymentMethod = $('#paymenttype').val();
+            const amountValue = $('#fundamount').val();
+            const amount = Number(String(amountValue).replace(/[^0-9.]/g, ''));
+
+            if (!amount || amount <= 0) {
+                alert('Please enter a valid deposit amount.');
+                return;
+            }
+
+            // Create transaction first
+            const { data: txData, error: txError } = await supabase
+                .from('transactions')
+                .insert({
+                    user_id: user.id,
+                    type: 'deposit',
+                    amount: amount,
+                    payment_method: paymentMethod,
+                    status: 'pending',
+                    note: 'Wallet deposit request from website form'
+                })
+                .select();
+
+            if (txError) {
+                console.error('Wallet deposit insert failed:', txError);
+                alert('Deposit request could not be saved. Please try again.');
+                return;
+            }
+
+            // Create payment approval request (this will trigger Telegram bot notification)
+            const { error: approvalError } = await supabase
+                .from('payment_approvals')
+                .insert({
+                    user_id: user.id,
+                    transaction_id: txData[0].id,
+                    amount: amount,
+                    payment_method: paymentMethod,
+                    status: 'pending',
+                    notes: 'Deposit via website form'
+                });
+
+            if (approvalError) {
+                console.error('Payment approval creation failed:', approvalError);
+                alert('Payment request could not be created. Please try again.');
+                return;
+            }
+
+            alert('✅ Wallet deposit request submitted successfully!\n\nAdmin will review and approve your payment via Telegram.');
+            $('#fundwallet').modal('hide');
+            $('#fundwalletform')[0].reset();
+            await loadWalletPageData();
+        });
+
+        await loadWalletPageData();
+    });
+    </script>
 </body>
 
 </html>

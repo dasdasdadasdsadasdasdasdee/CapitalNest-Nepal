@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register | CapitalNest Nepal</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #0f172a 0%, #1a1d2d 100%);
+            font-family: Arial, Helvetica, sans-serif;
+            color: #1f2937;
+        }
+
+        .auth-shell {
+            width: min(100%, 540px);
+            background: rgba(255,255,255,0.96);
+            border: 1px solid rgba(148, 163, 184, 0.28);
+            border-radius: 18px;
+            box-shadow: 0 22px 55px rgba(15, 23, 42, 0.18);
+            padding: 28px 26px 22px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 22px;
+            padding: 4px 0 12px;
+        }
+
+        .brand-mark {
+            width: 160px;
+            height: auto;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .brand-mark img {
+            width: 100%;
+            height: auto;
+            object-fit: contain;
+            display: block;
+        }
+
+        .auth-title {
+            text-align: center;
+            font-size: 17px;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+            margin-bottom: 20px;
+            color: #111827;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .field-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .phone-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .country-select {
+            width: 90px;
+            height: 48px;
+            border-radius: 12px;
+            border: 1px solid #d1d5db;
+            background: #fff;
+            padding: 0 12px;
+            font-size: 14px;
+            color: #111827;
+            outline: none;
+        }
+
+        .phone-input,
+        .invite-input,
+        .captcha-input,
+        .password-input,
+        .confirm-password-input {
+            width: 100%;
+            height: 48px;
+            border-radius: 12px;
+            border: 1px solid #d1d5db;
+            background: #fff;
+            padding: 0 16px;
+            font-size: 14px;
+            color: #111827;
+            outline: none;
+        }
+
+        .phone-input::placeholder,
+        .invite-input::placeholder,
+        .captcha-input::placeholder,
+        .password-input::placeholder,
+        .confirm-password-input::placeholder {
+            color: #9ca3af;
+        }
+
+        .captcha-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .captcha-input {
+            flex: 1;
+        }
+
+        .captcha-input.is-invalid {
+            border-color: #dc2626;
+            box-shadow: 0 0 0 1px rgba(220, 38, 38, 0.15);
+        }
+
+        .captcha-box {
+            width: 120px;
+            height: 48px;
+            border-radius: 12px;
+            border: 1px solid #111827;
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: monospace;
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: 6px;
+            color: #111827;
+            transform: rotate(-3deg);
+            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08);
+        }
+
+        .captcha-error {
+            display: none;
+            margin-top: 6px;
+            font-size: 12px;
+            color: #dc2626;
+            font-weight: 600;
+        }
+
+        .message {
+            display: none;
+            margin-top: 12px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .message.error {
+            display: block;
+            background: rgba(220, 38, 38, 0.08);
+            color: #b91c1c;
+            border: 1px solid rgba(220, 38, 38, 0.18);
+        }
+
+        .message.success {
+            display: block;
+            background: rgba(16, 185, 129, 0.08);
+            color: #047857;
+            border: 1px solid rgba(16, 185, 129, 0.18);
+        }
+
+        .password-wrap,
+        .confirm-password-wrap {
+            position: relative;
+        }
+
+        .password-wrap input,
+        .confirm-password-wrap input {
+            padding-right: 44px;
+        }
+
+        .toggle-password,
+        .toggle-confirm-password {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            border: 0;
+            background: transparent;
+            color: #6b7280;
+            padding: 0;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .toggle-password svg,
+        .toggle-confirm-password svg {
+            width: 18px;
+            height: 18px;
+            display: block;
+        }
+
+        .register-btn {
+            width: 100%;
+            height: 52px;
+            border-radius: 14px;
+            border: 1px solid #3bc6c3;
+            background: #101827;
+            color: rgba(255,255,255,0.8);
+            font-weight: 700;
+            letter-spacing: 0.4px;
+            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .register-btn::before,
+        .register-btn::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 18px;
+            background: transparent;
+            border-top: 1px solid rgba(27, 214, 190, 0.9);
+            border-bottom: 1px solid rgba(27, 214, 190, 0.9);
+        }
+
+        .register-btn::before {
+            left: 0;
+            border-left: 1px solid rgba(27, 214, 190, 0.9);
+        }
+
+        .register-btn::after {
+            right: 0;
+            border-right: 1px solid rgba(245, 129, 19, 0.9);
+        }
+
+        .register-btn span {
+            position: relative;
+            z-index: 1;
+        }
+
+        .bottom-text {
+            text-align: center;
+            font-size: 14px;
+            color: #4b5563;
+            margin-top: 10px;
+        }
+
+        .bottom-text a {
+            color: #0ea5a5;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .bottom-text a:hover {
+            text-decoration: underline;
+        }
+
+        .home-link {
+            display: inline-block;
+            margin-top: 10px;
+            font-size: 13px;
+            color: #0ea5a5;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        @media (max-width: 480px) {
+            .auth-shell {
+                padding: 22px 18px 18px;
+                border-radius: 16px;
+            }
+
+            .country-select {
+                width: 84px;
+            }
+
+            .captcha-box {
+                width: 96px;
+                font-size: 22px;
+                letter-spacing: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-shell">
+        <div class="brand">
+            <span class="brand-mark">
+                <img src="assets/img/capitalnest.png" alt="CapitalNest logo">
+            </span>
+        </div>
+
+        <div class="auth-title">Registration</div>
+
+        <form id="registerForm">
+            <div>
+                <label class="field-label" for="email">Email</label>
+                <input class="invite-input" id="email" type="email" placeholder="Please enter your email address" required>
+            </div>
+
+            <div>
+                <label class="field-label" for="mobile">Mobile phone</label>
+                <div class="phone-row">
+                    <select class="country-select" id="countryCode" aria-label="country code">
+                        <option selected>+977</option>
+                        <option>+1</option>
+                        <option>+44</option>
+                        <option>+61</option>
+                        <option>+91</option>
+                        <option>+971</option>
+                        <option>+92</option>
+                        <option>+81</option>
+                        <option>+66</option>
+                        <option>+65</option>
+                        <option>+60</option>
+                        <option>+852</option>
+                        <option>+86</option>
+                        <option>+33</option>
+                        <option>+49</option>
+                        <option>+34</option>
+                        <option>+39</option>
+                        <option>+31</option>
+                        <option>+47</option>
+                        <option>+46</option>
+                        <option>+41</option>
+                        <option>+351</option>
+                        <option>+358</option>
+                        <option>+353</option>
+                        <option>+420</option>
+                        <option>+48</option>
+                        <option>+7</option>
+                        <option>+27</option>
+                        <option>+234</option>
+                        <option>+251</option>
+                        <option>+254</option>
+                        <option>+256</option>
+                        <option>+255</option>
+                        <option>+880</option>
+                        <option>+966</option>
+                        <option>+974</option>
+                        <option>+965</option>
+                        <option>+968</option>
+                        <option>+962</option>
+                        <option>+94</option>
+                    </select>
+                    <input class="phone-input" id="mobile" type="tel" placeholder="Please enter your phone number" required>
+                </div>
+            </div>
+
+            <div>
+                <label class="field-label" for="inviteCode">Invitation code</label>
+                <input class="invite-input" id="inviteCode" type="text" value="" placeholder="">
+            </div>
+
+            <div>
+                <label class="field-label" for="captcha">Captcha</label>
+                <div class="captcha-row">
+                    <input class="captcha-input" id="captcha" type="text" placeholder="Please enter">
+                    <div class="captcha-box" id="captchaCode" aria-label="captcha">3474</div>
+                </div>
+                <div class="captcha-error" id="captchaError" aria-live="polite"></div>
+            </div>
+
+            <div>
+                <label class="field-label" for="password">Login Password</label>
+                <div class="password-wrap">
+                    <input class="password-input" id="password" type="password" placeholder="Please enter a password (6-20 alphanumeric characters)">
+                    <button type="button" class="toggle-password" aria-label="Show password" data-target="password">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div>
+                <label class="field-label" for="confirmPassword">Confirm password</label>
+                <div class="confirm-password-wrap">
+                    <input class="confirm-password-input" id="confirmPassword" type="password" placeholder="Please enter your password again">
+                    <button type="button" class="toggle-confirm-password" aria-label="Show confirm password" data-target="confirmPassword">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <button class="register-btn" type="submit"><span>Registration</span></button>
+            <div id="registerMessage" class="message" aria-live="polite"></div>
+        </form>
+
+        <div class="bottom-text">
+            Already have an account? <a href="login.html">Log in now</a>
+        </div>
+        <div class="bottom-text">
+            <a class="home-link" href="home.html">← Back to home</a>
+        </div>
+    </div>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+        const supabaseUrl = 'https://mohigobcssqzywmhndml.supabase.co';
+        const supabaseAnonKey = 'sb_publishable_MRVoyKc48ERptjd1G9l08g_3YTAleje';
+        const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+        let currentCaptcha = '';
+
+        function randomCaptcha() {
+            currentCaptcha = Math.floor(1000 + Math.random() * 9000).toString();
+            const captchaBox = document.getElementById('captchaCode');
+            if (captchaBox) {
+                captchaBox.textContent = currentCaptcha;
+            }
+            return currentCaptcha;
+        }
+
+        function showCaptchaError(message) {
+            const errorBox = document.getElementById('captchaError');
+            const captchaInput = document.getElementById('captcha');
+            if (errorBox) {
+                errorBox.textContent = message;
+                errorBox.style.display = 'block';
+            }
+            if (captchaInput) {
+                captchaInput.classList.add('is-invalid');
+            }
+        }
+
+        function showMessage(type, text) {
+            const messageBox = document.getElementById('registerMessage');
+            messageBox.className = 'message ' + type;
+            messageBox.textContent = text;
+        }
+
+        function normalizeInvitationCode(code) {
+            return (code || '').trim().toUpperCase();
+        }
+
+        async function validateInvitationCode(inviteCode) {
+            const cleanedCode = normalizeInvitationCode(inviteCode);
+            if (!cleanedCode) return true;
+
+            try {
+                const { data, error } = await supabase.rpc('validate_invitation_code', {
+                    p_invitation_code: cleanedCode
+                });
+
+                if (error) {
+                    console.error('Invitation validation RPC error:', error);
+                    throw error;
+                }
+
+                return !!data;
+            } catch (error) {
+                console.error('Invitation validation failed:', error);
+                throw error;
+            }
+        }
+
+        async function applyReferralIfPresent(userId, inviteCode) {
+            const cleanedCode = normalizeInvitationCode(inviteCode);
+            if (!userId || !cleanedCode) return;
+
+            try {
+                const { error } = await supabase.rpc('process_referral', {
+                    p_user_id: userId,
+                    p_invitation_code: cleanedCode
+                });
+
+                if (error) {
+                    console.warn('Referral apply failed:', error);
+                }
+            } catch (error) {
+                console.warn('Referral apply error:', error);
+            }
+        }
+
+        function isDuplicateEmailError(error) {
+            const message = (error?.message || '').toLowerCase();
+            return message.includes('already') ||
+                message.includes('registered') ||
+                message.includes('exists') ||
+                message.includes('user already') ||
+                message.includes('email is already');
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.getElementById('registerForm');
+            const captchaInput = document.getElementById('captcha');
+            const errorBox = document.getElementById('captchaError');
+            const inviteCodeInput = document.getElementById('inviteCode');
+            const params = new URLSearchParams(window.location.search);
+            const referralCode = params.get('ref');
+
+            if (referralCode && inviteCodeInput) {
+                inviteCodeInput.value = referralCode.trim();
+            }
+
+            randomCaptcha();
+
+            captchaInput.addEventListener('input', function () {
+                if (errorBox) {
+                    errorBox.style.display = 'none';
+                }
+                captchaInput.classList.remove('is-invalid');
+            });
+
+            form.addEventListener('submit', async function (event) {
+                event.preventDefault();
+
+                if (!supabaseUrl || supabaseUrl.includes('PASTE_') || !supabaseAnonKey || supabaseAnonKey.includes('PASTE_')) {
+                    showMessage('error', 'Please add your Supabase URL and anon key in this page before registration.');
+                    return;
+                }
+
+                const enteredValue = captchaInput.value.trim();
+                if (enteredValue !== currentCaptcha) {
+                    showCaptchaError('Wrong captcha. Please try again.');
+                    captchaInput.value = '';
+                    randomCaptcha();
+                    captchaInput.focus();
+                    return;
+                }
+
+                if (errorBox) {
+                    errorBox.style.display = 'none';
+                }
+
+                const email = document.getElementById('email').value.trim().toLowerCase();
+                const phone = document.getElementById('mobile').value.trim();
+                const countryCode = document.getElementById('countryCode').value;
+                const inviteCode = normalizeInvitationCode(document.getElementById('inviteCode').value);
+                const password = document.getElementById('password').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+
+                if (!email || !phone || !password || !confirmPassword) {
+                    showMessage('error', 'Please fill in all required fields.');
+                    return;
+                }
+
+                if (password !== confirmPassword) {
+                    showMessage('error', 'Passwords do not match.');
+                    return;
+                }
+
+                if (inviteCode) {
+                    try {
+                        const isValid = await validateInvitationCode(inviteCode);
+                        if (!isValid) {
+                            showMessage('error', 'Invalid invitation code.');
+                            return;
+                        }
+                    } catch (error) {
+                        showMessage('error', 'Unable to validate invitation code right now. Please try again.');
+                        console.error('Invitation validation UI error:', error);
+                        return;
+                    }
+                }
+
+                try {
+                    const { data, error } = await supabase.auth.signUp({
+                        email,
+                        password,
+                        options: {
+                            emailRedirectTo: window.location.origin + '/login.html',
+                            data: {
+                                phone,
+                                country_code: countryCode,
+                                invitation_code: inviteCode || null,
+                                full_name: ''
+                            }
+                        }
+                    });
+
+                    if (error) {
+                        console.error('Supabase signup error:', error);
+                        const errorMessage = (error.message || '').toLowerCase();
+
+                        if (isDuplicateEmailError(error)) {
+                            showMessage('error', 'This email is already registered. Please log in or use a different email.');
+                        } else {
+                            showMessage('error', error.message || 'Registration failed.');
+                        }
+                        return;
+                    }
+
+                    if (data?.user) {
+                        await applyReferralIfPresent(data.user.id, inviteCode);
+                        showMessage('success', 'Registration successful. Please check your email to confirm your account.');
+                        form.reset();
+                        randomCaptcha();
+                        setTimeout(function () {
+                            window.location.href = 'login.html';
+                        }, 1500);
+                    }
+                } catch (error) {
+                    console.error('Signup flow error:', error);
+                    showMessage('error', error?.message || 'Something went wrong. Please try again.');
+                }
+            });
+        });
+
+        document.querySelector('.toggle-password').addEventListener('click', function () {
+            const input = document.getElementById(this.dataset.target);
+            const isPassword = input.type === 'password';
+            input.type = isPassword ? 'text' : 'password';
+        });
+
+        document.querySelector('.toggle-confirm-password').addEventListener('click', function () {
+            const input = document.getElementById(this.dataset.target);
+            const isPassword = input.type === 'password';
+            input.type = isPassword ? 'text' : 'password';
+        });
+    </script>
+</body>
+</html>

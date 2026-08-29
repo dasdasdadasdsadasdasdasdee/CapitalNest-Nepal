@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Approvals - Admin Panel</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.12.0/css/all.css">
+    <style>
+        body {
+            background: #f5f7fb;
+            color: #1f2937;
+        }
+        
+        .approval-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .approval-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        
+        .status-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .status-approved {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .status-rejected {
+            background: #fee2e2;
+            color: #7f1d1d;
+        }
+        
+        .header {
+            background: white;
+            padding: 2rem 0;
+            border-bottom: 1px solid #e5e7eb;
+            margin-bottom: 2rem;
+        }
+        
+        .header h1 {
+            color: #1f2937;
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+            font-size: 0.95rem;
+        }
+        
+        .info-label {
+            color: #6b7280;
+            font-weight: 500;
+        }
+        
+        .info-value {
+            color: #1f2937;
+            font-weight: 600;
+        }
+        
+        .btn-approve, .btn-reject {
+            font-weight: 600;
+            padding: 0.5rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-approve {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-approve:hover {
+            background: #059669;
+            transform: translateY(-1px);
+        }
+        
+        .btn-reject {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .btn-reject:hover {
+            background: #dc2626;
+            transform: translateY(-1px);
+        }
+        
+        .filter-section {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2a30fe;
+        }
+        
+        .stat-label {
+            color: #6b7280;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #6b7280;
+        }
+        
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container-fluid">
+            <h1>💰 Payment Approvals</h1>
+            <p class="text-muted mt-2">Manage and approve user payment requests</p>
+        </div>
+    </div>
+    
+    <div class="container-fluid px-4">
+        <!-- Stats -->
+        <div class="stats" id="statsContainer">
+            <div class="stat-card">
+                <div class="stat-value" id="pendingCount">0</div>
+                <div class="stat-label">Pending Approvals</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="approvedCount">0</div>
+                <div class="stat-label">Approved Today</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalAmount">NPR 0</div>
+                <div class="stat-label">Total Pending Amount</div>
+            </div>
+        </div>
+        
+        <!-- Filter Section -->
+        <div class="filter-section">
+            <label for="statusFilter">Filter by Status:</label>
+            <select class="form-control w-auto d-inline-block ml-2" id="statusFilter">
+                <option value="">All</option>
+                <option value="pending" selected>Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+            </select>
+        </div>
+        
+        <!-- Approvals List -->
+        <div id="approvalsContainer">
+            <div class="empty-state">
+                <div class="empty-state-icon">📋</div>
+                <p>Loading approvals...</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Notification Toast -->
+    <div class="position-fixed" style="bottom: 2rem; right: 2rem; z-index: 1000;" id="notificationContainer"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+    <script src="../supabase-config.js"></script>
+    
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+        
+        const supabase = createClient(
+            window.CAPITALNEST_SUPABASE.url,
+            window.CAPITALNEST_SUPABASE.anonKey,
+            { auth: { persistSession: true, autoRefreshToken: true } }
+        );
+        
+        let allApprovals = [];
+        let currentFilter = 'pending';
+        
+        // Check if user is authenticated and is admin
+        async function checkAdminAccess() {
+            const { data: { user }, error } = await supabase.auth.getUser();
+            if (error || !user) {
+                window.location.href = '../login.html';
+                return false;
+            }
+            
+            const { data: profile, error: profileError } = await supabase
+                .from('profiles')
+                .select('is_admin')
+                .eq('id', user.id)
+                .single();
+            
+            if (profileError || !profile?.is_admin) {
+                alert('⛔ Access Denied! This page is for admins only.');
+                window.location.href = '../home.html';
+                return false;
+            }
+            
+            return true;
+        }
+        
+        function formatCurrency(amount) {
+            const num = Number(amount || 0);
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'NPR',
+                maximumFractionDigits: 0
+            }).format(num);
+        }
+        
+        function formatDate(dateStr) {
+            if (!dateStr) return 'N/A';
+            const date = new Date(dateStr);
+            return date.toLocaleString('en-US', { 
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+        
+        async function loadApprovals() {
+            const { data, error } = await supabase
+                .from('payment_approvals')
+                .select('*, profiles:user_id(email, full_name)')
+                .order('created_at', { ascending: false });
+            
+            if (error) {
+                console.error('Error loading approvals:', error);
+                return;
+            }
+            
+            allApprovals = data || [];
+            renderApprovals();
+            updateStats();
+        }
+        
+        function renderApprovals() {
+            let filtered = allApprovals;
+            if (currentFilter) {
+                filtered = allApprovals.filter(a => a.status === currentFilter);
+            }
+            
+            const container = document.getElementById('approvalsContainer');
+            
+            if (!filtered.length) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">✨</div>
+                        <p>No ${currentFilter ? currentFilter : ''} approvals found</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = filtered.map(approval => `
+                <div class="approval-card">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+                        <div>
+                            <h5 style="margin: 0 0 0.5rem 0; color: #1f2937;">
+                                ${approval.profiles?.full_name || 'User'}
+                            </h5>
+                            <p style="margin: 0; color: #6b7280; font-size: 0.875rem;">
+                                ${approval.profiles?.email || 'N/A'}
+                            </p>
+                        </div>
+                        <span class="status-badge status-${approval.status}">
+                            ${approval.status.charAt(0).toUpperCase() + approval.status.slice(1)}
+                        </span>
+                    </div>
+                    
+                    <div class="info-row">
+                        <span class="info-label">Amount:</span>
+                        <span class="info-value">${formatCurrency(approval.amount)}</span>
+                    </div>
+                    
+                    <div class="info-row">
+                        <span class="info-label">Payment Method:</span>
+                        <span class="info-value">${approval.payment_method || 'N/A'}</span>
+                    </div>
+                    
+                    <div class="info-row">
+                        <span class="info-label">Requested:</span>
+                        <span class="info-value">${formatDate(approval.created_at)}</span>
+                    </div>
+                    
+                    ${approval.customer_name ? `
+                        <div class="info-row">
+                            <span class="info-label">Customer Name:</span>
+                            <span class="info-value">${approval.customer_name}</span>
+                        </div>
+                    ` : ''}
+
+                    ${approval.phone_number ? `
+                        <div class="info-row">
+                            <span class="info-label">Phone:</span>
+                            <span class="info-value">${approval.phone_number}</span>
+                        </div>
+                    ` : ''}
+
+                    ${approval.notes ? `
+                        <div class="info-row">
+                            <span class="info-label">Notes:</span>
+                            <span class="info-value">${approval.notes}</span>
+                        </div>
+                    ` : ''}
+
+                    ${approval.payment_proof_url ? `
+                        <div style="margin-top: 1rem;">
+                            <div class="info-label" style="margin-bottom: 0.5rem;">Payment Proof:</div>
+                            <a href="${approval.payment_proof_url}" target="_blank" rel="noopener noreferrer">
+                                <img src="${approval.payment_proof_url}" alt="Payment proof" style="max-width: 220px; width: 100%; border: 1px solid #e5e7eb; border-radius: 8px; object-fit: cover; cursor: pointer;" />
+                            </a>
+                        </div>
+                    ` : ''}
+                    
+                    ${approval.status === 'pending' ? `
+                        <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
+                            <button class="btn-approve" onclick="approvePayment('${approval.id}')">
+                                ✅ Approve
+                            </button>
+                            <button class="btn-reject" onclick="rejectPayment('${approval.id}')">
+                                ❌ Reject
+                            </button>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+        
+        function updateStats() {
+            const pending = allApprovals.filter(a => a.status === 'pending');
+            const approved = allApprovals.filter(a => a.status === 'approved' && 
+                new Date(a.created_at).toDateString() === new Date().toDateString());
+            const totalPending = pending.reduce((sum, a) => sum + Number(a.amount || 0), 0);
+            
+            document.getElementById('pendingCount').textContent = pending.length;
+            document.getElementById('approvedCount').textContent = approved.length;
+            document.getElementById('totalAmount').textContent = formatCurrency(totalPending);
+        }
+        
+        window.approvePayment = async function(approvalId) {
+            if (!confirm('✅ Approve this payment?')) return;
+            
+            const { error } = await supabase
+                .from('payment_approvals')
+                .update({ 
+                    status: 'approved',
+                    approved_at: new Date().toISOString()
+                })
+                .eq('id', approvalId);
+            
+            if (error) {
+                showNotification('❌ Error approving payment', 'error');
+                console.error(error);
+                return;
+            }
+            
+            showNotification('✅ Payment approved successfully', 'success');
+            await loadApprovals();
+        };
+        
+        window.rejectPayment = async function(approvalId) {
+            if (!confirm('❌ Reject this payment?')) return;
+            
+            const { error } = await supabase
+                .from('payment_approvals')
+                .update({ status: 'rejected' })
+                .eq('id', approvalId);
+            
+            if (error) {
+                showNotification('❌ Error rejecting payment', 'error');
+                console.error(error);
+                return;
+            }
+            
+            showNotification('✅ Payment rejected', 'success');
+            await loadApprovals();
+        };
+        
+        function showNotification(message, type = 'info') {
+            const container = document.getElementById('notificationContainer');
+            const bgColor = type === 'success' ? 'bg-success' : type === 'error' ? 'bg-danger' : 'bg-info';
+            const html = `
+                <div class="alert ${bgColor} text-white alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="close text-white" data-dismiss="alert">
+                        <span>&times;</span>
+                    </button>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', html);
+            setTimeout(() => {
+                container.querySelector('.alert')?.remove();
+            }, 5000);
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            const isAdmin = await checkAdminAccess();
+            if (!isAdmin) return;
+            
+            await loadApprovals();
+            
+            // Listen to filter changes
+            document.getElementById('statusFilter').addEventListener('change', (e) => {
+                currentFilter = e.target.value;
+                renderApprovals();
+            });
+            
+            // Real-time updates
+            supabase
+                .from('payment_approvals')
+                .on('*', (payload) => {
+                    console.log('Payment approval updated:', payload);
+                    loadApprovals();
+                })
+                .subscribe();
+        });
+    </script>
+</body>
+</html>

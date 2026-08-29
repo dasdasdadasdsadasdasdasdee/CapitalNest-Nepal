@@ -4,9 +4,9 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
-    <title>Sample Invest</title>
+    <title>CapitalNest Nepal</title>
     <meta name="twitter:card" content="summary">
-    <meta property="og:title" content="Sample invest">
+    <meta property="og:title" content="CapitalNest Nepal">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="manifest" href="../manifest.json">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:100,100i,300,300i,400,400i,700,700i,900,900i">
@@ -16,6 +16,180 @@
     <link rel="stylesheet" href="https://cdn.datatables.net/v/bs4/jszip-2.5.0/dt-1.10.21/b-1.6.2/b-colvis-1.6.2/b-html5-1.6.2/b-print-1.6.2/cr-1.5.2/fc-3.3.1/fh-3.1.7/kt-2.5.2/r-2.2.5/sc-2.0.2/sp-1.1.1/datatables.min.css" crossorigin="anonymous">
     <link rel="stylesheet" href="https://unpkg.com/@bootstrapstudio/bootstrap-better-nav/dist/bootstrap-better-nav.min.css" crossorigin="anonymous">
     <link rel="stylesheet" href="../assets/css/styles.min.css">
+    <style>
+        .navbar-dashboard {
+            background: #ffffff !important;
+            border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+            box-shadow: none;
+            padding: 10px 0;
+        }
+
+        .nav2 {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .nav-item {
+            position: relative;
+        }
+
+        .navlink2, .nav-link {
+            color: #1f2937 !important;
+            font-weight: 600;
+            font-size: 0.94rem;
+            padding: 10px 14px !important;
+            border-radius: 10px;
+            transition: color 0.2s ease, background-color 0.2s ease;
+        }
+
+        .navlink2:hover, .nav-link:hover {
+            color: #2a30fe !important;
+            background: #f3f4f6;
+        }
+
+        .navlink2.active, .nav-link.active {
+            color: #ffffff !important;
+            background: linear-gradient(135deg, #2a30fe, #3b82f6);
+            box-shadow: none;
+        }
+
+        .badge-primary {
+            background: #2a30fe !important;
+            font-size: 11px;
+            padding: 4px 8px !important;
+            box-shadow: none;
+        }
+
+        .navbar-toggler {
+            border: none;
+        }
+
+        .dashboard-icon {
+            font-size: 24px;
+            color: #2a30fe;
+        }
+
+        .pill-counter {
+            margin-left: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .nav2 {
+                width: 100%;
+                display: block;
+            }
+
+            .nav-item {
+                width: 100%;
+            }
+
+            .navlink2, .nav-link {
+                padding: 12px 12px !important;
+            }
+        }
+
+        body.dashboard-body {
+            background: #f5f7fb;
+            color: #1f2937;
+        }
+
+        .dashboard-heading-h {
+            color: #1f2937;
+            font-size: 1.75rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+
+        .card-bg {
+            background: transparent;
+            border: none;
+        }
+
+        .card1 {
+            background: rgba(255, 255, 255, 0.85);
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            border-radius: 14px;
+            box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .card1:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
+        }
+
+        .card-body {
+            padding: 1.25rem 1.2rem;
+        }
+
+        .card-body > span {
+            display: inline-block;
+            color: #64748b;
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 0.09em;
+            text-transform: uppercase;
+        }
+
+        .table {
+            border-collapse: separate;
+            border-spacing: 0 10px;
+        }
+
+        .table thead th {
+            color: #64748b;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            border: none;
+            padding-bottom: 10px;
+        }
+
+        .table tbody tr {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(15, 23, 42, 0.03);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .table tbody tr:hover {
+            transform: translateX(2px);
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+        }
+
+        .table tbody td {
+            border: none;
+            padding: 0.9rem 1rem;
+            color: #334155;
+            font-weight: 400;
+            vertical-align: middle;
+        }
+
+        .table-p,
+        .date-span,
+        .trx-heading,
+        .body-p {
+            color: #475569;
+            font-weight: 400;
+        }
+
+        .badge-warning {
+            font-weight: 500;
+            letter-spacing: 0.02em;
+        }
+
+        .btn3,
+        .btn1 {
+            transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+        }
+
+        .btn3:hover,
+        .btn1:hover {
+            transform: translateY(-1px);
+        }
+    </style>
 </head>
 
 <body class="dashboard-body">
@@ -25,10 +199,10 @@
     <h4 class="modal-title">Add Wallet</h4><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true"><i data-toggle="tooltip" class="la la-close"></i></span></button></div>
                 <div class="modal-body">
                     <form id="fundwalletform">
-                        <div class="form-group"><label for="paymenttype">Wallet Type</label><select class="form-control" id="paymenttype" required=""><optgroup label="Supported Wallets"><option value="Bitcoin" selected="">Bitcoin</option><option value="Ethereum">Ethereum</option><option value="Litecoin">Litecoin</option></optgroup></select></div>
+                        <div class="form-group"><label for="paymenttype">Payment Method</label><select class="form-control" id="paymenttype" required=""><optgroup label="Supported Methods"><option value="Bank Transfer" selected="">Bank Transfer</option><option value="eSewa">eSewa</option><option value="IME Pay">IME Pay</option><option value="Khalti">Khalti</option></optgroup></select></div>
                         <div
-                            class="form-group"><label for="walletaddress">Wallet Address</label><input class="form-control" type="text" id="walletaddress" required="" inputmode="numeric"></div>
-                <div class="form-group mt-4"><button class="btn btn3" type="submit">Add Wallet</button></div>
+                            class="form-group"><label for="walletaddress">Account Details</label><input class="form-control" type="text" id="walletaddress" required="" inputmode="numeric"></div>
+                <div class="form-group mt-4"><button class="btn btn3" type="submit">Add Method</button></div>
                 </form>
             </div>
         </div>
@@ -40,7 +214,7 @@
     <h4 class="modal-title">Make Withdrawal</h4><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true"><i data-toggle="tooltip" class="la la-close"></i></span></button></div>
                 <div class="modal-body">
                     <form id="fundwalletform-1">
-                        <div class="form-group"><label for="withdrawwallet">Choose Withdrawal Wallet</label><select class="form-control" id="withdrawwallet" required=""><optgroup label="Supported Wallets"><option value="Bitcoin" selected="">Bitcoin</option><option value="Ethereum">Ethereum</option><option value="Litecoin">Litecoin</option></optgroup></select></div>
+                        <div class="form-group"><label for="withdrawwallet">Choose Withdrawal Method</label><select class="form-control" id="withdrawwallet" required=""><optgroup label="Supported Methods"><option value="Bank Transfer" selected="">Bank Transfer</option><option value="eSewa">eSewa</option><option value="IME Pay">IME Pay</option><option value="Khalti">Khalti</option></optgroup></select></div>
                         <div
                             class="form-group"><label for="amountwithdraw">Amount To Withdraw<br></label><input class="form-control" type="number" id="amountwithdraw" min="10" max="10000"></div>
                 <div class="form-group mt-4"><button class="btn btn3" type="submit">Request Withdrawal</button></div>
@@ -54,7 +228,7 @@
             <div
                 class="collapse navbar-collapse" id="navcol-1">
                 <ul class="nav navbar-nav pt-3 pb-3 nav2 pl-3">
-                    <li class="nav-item mr-4"><a class="nav-link active navlink2" href="../user/index.html">Dashboard</a></li>
+                    <li class="nav-item mr-4"><a class="nav-link navlink2" href="../user/index.html">Dashboard</a></li>
                     <li class="nav-item mr-4"><a class="nav-link navlink2" href="../user/wallet.html">Wallet</a></li>
                     <li class="nav-item mr-4"><a class="nav-link navlink2" href="../user/investment.html">Investment</a></li>
                     <li class="nav-item mr-4"><a class="nav-link navlink2" href="../user/withdrawals.html">Withdrawals</a></li>
@@ -63,7 +237,7 @@
                 <ul class="nav navbar-nav ml-auto pt-3 pb-3 nav2 pl-3">
                     <li class="nav-item mr-4">
                         <div class="nav-item dropdown"><a class="dropdown-toggle" data-toggle="dropdown" aria-expanded="false" href="#"><img class="mr-2" src="../assets/img/client03.png" width="30">My Profile</a>
-                            <div class="dropdown-menu"><a class="dropdown-item pt-3 pb-3" href="../user/profile-settings.html">Profile &amp; Settings</a><a class="dropdown-item pt-3 pb-3" href="../index-old.html">Log Out</a></div>
+                            <div class="dropdown-menu"><a class="dropdown-item pt-3 pb-3" href="../user/profile-settings.html">Profile &amp; Settings</a><a class="dropdown-item pt-3 pb-3" href="../home.html">Log Out</a></div>
                         </div>
                     </li>
                 </ul>
@@ -90,7 +264,7 @@
                         <div class="col-md-4 mb-3">
                             <div class="card card1">
                                 <div class="card-body"><span class="mb-3">Wallet Balance</span>
-                                    <h1 class="dashboard-heading-h">$1,300,000<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-arrow-up green-up">
+                                    <h1 id="withdrawalWalletBalanceValue" class="dashboard-heading-h">NPR 0<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-arrow-up green-up">
   <path fill-rule="evenodd" d="M8 15a.5.5 0 0 0 .5-.5V2.707l3.146 3.147a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L7.5 2.707V14.5a.5.5 0 0 0 .5.5z"></path>
 </svg></h1>
                                 </div>
@@ -99,7 +273,7 @@
                         <div class="col-md-4 mb-3">
                             <div class="card card1">
                                 <div class="card-body"><span class="mb-3">Invested</span>
-                                    <h1 class="dashboard-heading-h">$300,000<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-plus green-plus text-success">
+                                    <h1 id="withdrawalInvestedValue" class="dashboard-heading-h">NPR 0<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-plus green-plus text-success">
   <path fill-rule="evenodd" d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"></path>
 </svg></h1>
                                 </div>
@@ -108,7 +282,7 @@
                         <div class="col-md-4 mb-3">
                             <div class="card card1">
                                 <div class="card-body"><span class="mb-3">Withdrawn</span>
-                                    <h1 class="dashboard-heading-h">$500,424<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-arrow-down red-down">
+                                    <h1 id="withdrawalWithdrawnValue" class="dashboard-heading-h">NPR 0<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-arrow-down red-down">
   <path fill-rule="evenodd" d="M8 1a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 13.293V1.5A.5.5 0 0 1 8 1z"></path>
 </svg></h1>
                                 </div>
@@ -131,38 +305,9 @@
                                     <th>Date</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="withdrawalTableBody">
                                 <tr>
-                                    <td>01</td>
-                                    <td>
-                                        <p class="table-p">012345678</p>
-                                    </td>
-                                    <td>
-                                        <p class="text-nowrap table-p">Bitcoin</p>
-                                    </td>
-                                    <td>
-                                        <p class="text-nowrap table-p green"><strong>$4,000</strong></p>
-                                    </td>
-                                    <td><span class="badge badge-pill badge-warning card-badge-g">Completed</span></td>
-                                    <td>
-                                        <p class="text-nowrap table-p">2020-07-03 23:45</p>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>01</td>
-                                    <td>
-                                        <p class="table-p">3193199393</p>
-                                    </td>
-                                    <td>
-                                        <p class="text-nowrap table-p">Ethereum</p>
-                                    </td>
-                                    <td>
-                                        <p class="text-nowrap table-p green"><strong>$2,310</strong></p>
-                                    </td>
-                                    <td><span class="badge badge-pill badge-warning card-badge-b">Pending</span></td>
-                                    <td>
-                                        <p class="text-nowrap table-p">2020-07-03 20:12</p>
-                                    </td>
+                                    <td colspan="6">Loading withdrawals...</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -175,52 +320,14 @@
                         <div class="dropdown-menu"><a class="dropdown-item pt-3 pb-3" href="#addwallet" data-target="#addwallet" data-toggle="modal">Add Wallet Address</a></div>
                     </div>
                     <h6 class="dashboard-h mb-4">Withdrawal Wallets</h6>
-                    <div style="height: 280px;overflow-y: scroll;">
-                        <div class="card card1 mb-3">
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-2 col-md-2 p-0"><div>
-    <a class="btn btn7 pl-1 pt-0 pb-0 pr-0" data-toggle="collapse" aria-expanded="true" aria-controls="walletadd" href="#walletadd" role="button"><i class="la la-plus-circle walletadd"></i>
-    </a>
-</div></div>
-                                    <div class="col-6 col-md-6 p-0">
-                                        <h6 class="text-nowrap text-truncate mb-0 trx-heading">Bitcoin</h6><span class="date-span">20.10.2020</span></div>
-                                    <div class="col-4 col-md-4">
-                                        <p class="text-nowrap" data-toggle="tooltip" data-bs-tooltip="" title="Total Withdrawn">$3,000.98</p>
-                                    </div>
-                                    <div class="col-12 col-md-12"><div
-        class="collapse walletadd-show text-center" id="walletadd">
-        <p>21318HJH31J3JB1BJ31JK3NK3</p>
-    <a href="#" class="delete-link"> Delete</a>
-</div></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="card card1 mb-3">
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-2 col-md-2 p-0"><div>
-    <a class="btn btn7 pl-1 pt-0 pb-0 pr-0" data-toggle="collapse" aria-expanded="true" aria-controls="walletadd2" href="#walletadd2" role="button"><i class="la la-plus-circle walletadd"></i>
-    </a>
-</div></div>
-                                    <div class="col-6 col-md-6 p-0">
-                                        <h6 class="text-nowrap text-truncate mb-0 trx-heading">Ethereum</h6><span class="date-span">21.10.2020</span></div>
-                                    <div class="col-4 col-md-4">
-                                        <p class="text-nowrap" data-toggle="tooltip" data-bs-tooltip="" title="Total Withdrawn">$456.09</p>
-                                    </div>
-                                    <div class="col-12 col-md-12"><div
-        class="collapse walletadd-show text-center" id="walletadd2">
-        <p>0x1235fvuvfctxetxr456cu5656uc56</p>
-    <a href="#" class="delete-link"> Delete</a>
-</div></div>
-                                </div>
-                            </div>
-                        </div>
+                    <div style="height: 280px;overflow-y: auto;">
+                        <div class="text-muted small">No saved withdrawal wallets yet.</div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+    <script src="../supabase-config.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.datatables.net/v/bs4/jszip-2.5.0/dt-1.10.21/b-1.6.2/b-colvis-1.6.2/b-html5-1.6.2/b-print-1.6.2/cr-1.5.2/fc-3.3.1/fh-3.1.7/kt-2.5.2/r-2.2.5/sc-2.0.2/sp-1.1.1/datatables.min.js" crossorigin="anonymous"></script>
@@ -230,6 +337,107 @@
     <script src="https://cdn.jsdelivr.net/npm/typed.js@2.0.9"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.4.1/jquery.easing.min.js"></script>
     <script src="../assets/js/script.min.js"></script>
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+        const supabase = createClient(window.CAPITALNEST_SUPABASE.url, window.CAPITALNEST_SUPABASE.anonKey, {
+            auth: { persistSession: true, autoRefreshToken: true }
+        });
+        window.CAPITALNEST_SUPABASE_CLIENT = supabase;
+    </script>
+    <script>
+        function formatCurrency(amount) {
+            const numericAmount = Number(amount || 0);
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'NPR',
+                maximumFractionDigits: 0
+            }).format(numericAmount);
+        }
+
+        function formatDate(value) {
+            if (!value) return 'N/A';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return value;
+            return date.toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
+        }
+
+        async function loadWithdrawalPageData() {
+            const supabase = window.CAPITALNEST_SUPABASE_CLIENT;
+            if (!supabase) return;
+
+            const { data: { user }, error: userError } = await supabase.auth.getUser();
+            if (userError || !user) {
+                window.location.href = '../login.html';
+                return;
+            }
+
+            const [{ data: transactions = [] }, { data: investments = [] }] = await Promise.all([
+                supabase.from('transactions').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+                supabase.from('user_investments').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
+            ]);
+
+            const totalWithdrawn = transactions
+                .filter((tx) => (tx.type || '').toLowerCase() === 'withdrawal')
+                .reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+
+            const totalDeposits = transactions
+                .filter((tx) => ['deposit', 'welcome_bonus', 'bonus', 'refund'].includes((tx.type || '').toLowerCase()))
+                .reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+
+            const totalInvested = investments.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+            const walletBalance = Math.max(totalDeposits - totalWithdrawn - totalInvested, 0);
+
+            document.getElementById('withdrawalWalletBalanceValue').textContent = formatCurrency(walletBalance);
+            document.getElementById('withdrawalInvestedValue').textContent = formatCurrency(totalInvested);
+            document.getElementById('withdrawalWithdrawnValue').textContent = formatCurrency(totalWithdrawn);
+
+            const withdrawalTableBody = document.getElementById('withdrawalTableBody');
+            const withdrawalRecords = transactions.filter((tx) => (tx.type || '').toLowerCase() === 'withdrawal');
+            if (!withdrawalRecords.length) {
+                withdrawalTableBody.innerHTML = '<tr><td colspan="6">No withdrawals found.</td></tr>';
+                return;
+            }
+
+            withdrawalTableBody.innerHTML = withdrawalRecords.map((tx, index) => `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td><p class="table-p">${(tx.id || '').slice(0, 10).toUpperCase() || 'N/A'}</p></td>
+                    <td><p class="text-nowrap table-p">${tx.payment_method || 'Bank Transfer'}</p></td>
+                    <td><p class="text-nowrap table-p green"><strong>${formatCurrency(tx.amount)}</strong></p></td>
+                    <td><span class="${(tx.status || 'pending').toLowerCase() === 'pending' ? 'badge badge-pill badge-warning card-badge-b' : 'badge badge-pill badge-warning card-badge-g'}">${tx.status || 'Pending'}</span></td>
+                    <td><p class="text-nowrap table-p">${formatDate(tx.created_at)}</p></td>
+                </tr>
+            `).join('');
+        }
+
+        document.addEventListener('DOMContentLoaded', async function () {
+            const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+            const navLinks = document.querySelectorAll('.navlink2');
+
+            navLinks.forEach(function (link) {
+                const href = link.getAttribute('href');
+                if (!href || href.startsWith('#')) return;
+
+                const targetPage = href.split('/').pop();
+                if (targetPage === currentPage) {
+                    link.classList.add('active');
+                } else {
+                    link.classList.remove('active');
+                }
+            });
+
+            navLinks.forEach(function (link) {
+                link.addEventListener('click', function () {
+                    navLinks.forEach(function (item) {
+                        item.classList.remove('active');
+                    });
+                    link.classList.add('active');
+                });
+            });
+
+            await loadWithdrawalPageData();
+        });
+    </script>
 </body>
 
 </html>

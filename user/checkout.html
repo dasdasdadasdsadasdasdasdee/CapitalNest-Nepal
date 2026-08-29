@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+    <title>Checkout - CapitalNest</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/line-awesome/1.3.0/line-awesome/css/line-awesome.min.css">
+    <link rel="stylesheet" href="../assets/css/styles.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #f8f9fa;
+            min-height: 100vh;
+            padding: 40px 20px;
+            font-family: Lato, sans-serif;
+        }
+
+        .checkout-wrapper {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .checkout-card {
+            background: #fff;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+            padding: 50px 40px;
+            min-height: 600px;
+        }
+
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 50px;
+            position: relative;
+        }
+
+        .step-indicator::before {
+            content: "";
+            position: absolute;
+            top: 20px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #e0e7ff;
+            z-index: 0;
+        }
+
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .step-circle {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #e0e7ff;
+            border: 3px solid #e0e7ff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: #999;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .step.active .step-circle {
+            background: linear-gradient(135deg, #2a30fe 0%, #1800b0 100%);
+            color: #fff;
+            border-color: #2a30fe;
+        }
+
+        .step.completed .step-circle {
+            background: #2a30fe;
+            color: #fff;
+        }
+
+        .step-label {
+            font-size: 13px;
+            color: #999;
+            font-weight: 600;
+        }
+
+        .step.active .step-label,
+        .step.completed .step-label {
+            color: #1800b0;
+        }
+
+        .checkout-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .checkout-header h2 {
+            color: #1800b0;
+            font-weight: 700;
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .checkout-header p {
+            color: #999;
+            font-size: 15px;
+        }
+
+        .plan-summary {
+            background: linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 100%);
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 35px;
+            border-left: 5px solid #2a30fe;
+        }
+
+        .plan-summary p {
+            margin: 10px 0;
+            color: #1800b0;
+            font-weight: 600;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            color: #1800b0;
+            font-weight: 700;
+            margin-bottom: 12px;
+            display: block;
+            font-size: 15px;
+        }
+
+        .form-control {
+            border: 2px solid #e0e7ff;
+            border-radius: 12px;
+            padding: 15px 18px;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            background: #f8fafc;
+        }
+
+        .form-control:focus {
+            border-color: #2a30fe;
+            background: #fff;
+            box-shadow: 0 0 0 0.2rem rgba(42, 48, 254, 0.1);
+            outline: 0;
+        }
+
+        .payment-methods {
+            margin: 30px 0;
+        }
+
+        .payment-methods h5 {
+            color: #1800b0;
+            font-weight: 700;
+            margin-bottom: 20px;
+            font-size: 16px;
+        }
+
+        .payment-option {
+            display: flex;
+            align-items: center;
+            padding: 18px 20px;
+            border: 2px solid #e0e7ff;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f8fafc;
+        }
+
+        .payment-option:hover {
+            border-color: #2a30fe;
+            background: #f0f4ff;
+        }
+
+        .payment-option input[type="radio"] {
+            margin-right: 15px;
+            cursor: pointer;
+            width: 22px;
+            height: 22px;
+            accent-color: #2a30fe;
+        }
+
+        .payment-content {
+            flex-grow: 1;
+            color: #1800b0;
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .payment-img {
+            width: 55px;
+            height: 55px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            background: #fff;
+            margin-left: 15px;
+            font-size: 28px;
+        }
+
+        .qr-display {
+            text-align: center;
+            margin: 30px 0;
+            padding: 30px;
+            background: #f8fafc;
+            border-radius: 15px;
+        }
+
+        .qr-display img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .qr-display p {
+            margin-top: 15px;
+            color: #1800b0;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .file-upload-box {
+            border: 3px dashed #2a30fe;
+            border-radius: 15px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f8fafc;
+            margin: 25px 0;
+        }
+
+        .file-upload-box:hover {
+            background: #f0f4ff;
+            border-color: #1800b0;
+        }
+
+        .file-upload-box input[type="file"] {
+            display: none;
+        }
+
+        .file-upload-label {
+            cursor: pointer;
+            display: block;
+        }
+
+        .file-upload-icon {
+            font-size: 40px;
+            color: #2a30fe;
+            margin-bottom: 10px;
+        }
+
+        .file-upload-text {
+            color: #1800b0;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .file-name {
+            color: #2a30fe;
+            margin-top: 15px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .btn-submit, .btn-next {
+            width: 100%;
+            background: linear-gradient(135deg, #2a30fe 0%, #1800b0 100%);
+            color: #fff;
+            border: none;
+            padding: 16px 20px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(42, 48, 254, 0.3);
+            margin-top: 20px;
+        }
+
+        .btn-submit:hover, .btn-next:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(42, 48, 254, 0.4);
+            background: linear-gradient(135deg, #1800b0 0%, #0d0055 100%);
+            color: #fff;
+        }
+
+        .btn-back {
+            background: #e0e7ff;
+            color: #2a30fe;
+            margin-right: 10px;
+        }
+
+        .btn-back:hover {
+            background: #d0deff;
+            color: #1800b0;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .button-group .btn-back {
+            flex: 0.3;
+        }
+
+        .button-group .btn-submit,
+        .button-group .btn-next {
+            flex: 0.7;
+            margin-top: 0;
+        }
+
+        .step-content {
+            display: none;
+        }
+
+        .step-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Success Modal */
+        .success-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .success-modal.active {
+            display: flex;
+        }
+
+        .success-content {
+            background: #fff;
+            border-radius: 20px;
+            padding: 50px 30px;
+            text-align: center;
+            max-width: 450px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.5s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #2a30fe 0%, #1800b0 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 40px;
+            color: #fff;
+        }
+
+        .success-content h2 {
+            color: #1800b0;
+            font-weight: 700;
+            margin-bottom: 15px;
+            font-size: 28px;
+        }
+
+        .success-content p {
+            color: #666;
+            font-size: 15px;
+            line-height: 1.8;
+            margin-bottom: 15px;
+        }
+
+        .success-content .highlight {
+            color: #2a30fe;
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        .close-btn {
+            background: linear-gradient(135deg, #2a30fe 0%, #1800b0 100%);
+            color: #fff;
+            border: none;
+            padding: 14px 30px;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+            font-size: 15px;
+        }
+
+        .close-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(42, 48, 254, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .checkout-card {
+                padding: 30px 25px;
+                min-height: auto;
+            }
+
+            .checkout-header h2 {
+                font-size: 26px;
+            }
+
+            .step-indicator {
+                margin-bottom: 40px;
+            }
+
+            .step-circle {
+                width: 40px;
+                height: 40px;
+                font-size: 13px;
+            }
+
+            .step-label {
+                font-size: 11px;
+            }
+
+            .success-content {
+                padding: 40px 20px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .button-group .btn-back,
+            .button-group .btn-submit {
+                flex: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="checkout-wrapper">
+        <div class="checkout-card">
+            <!-- Step Indicator -->
+            <div class="step-indicator">
+                <div class="step active" id="step1-indicator">
+                    <div class="step-circle">1</div>
+                    <div class="step-label">Details</div>
+                </div>
+                <div class="step" id="step2-indicator">
+                    <div class="step-circle">2</div>
+                    <div class="step-label">Payment</div>
+                </div>
+                <div class="step" id="step3-indicator">
+                    <div class="step-circle">3</div>
+                    <div class="step-label">Confirm</div>
+                </div>
+            </div>
+
+            <!-- Header -->
+            <div class="checkout-header">
+                <h2>Checkout</h2>
+                <p>Complete your investment purchase</p>
+            </div>
+
+            <!-- Plan Summary -->
+            <div class="plan-summary">
+                <p style="margin-bottom: 5px; font-size: 13px; color: #666; font-weight: 400; margin: 0;">Selected Plan</p>
+                <p id="planName" style="font-size: 18px; margin: 8px 0 0 0;">Starter Plan</p>
+                <p id="planAmount" style="font-size: 16px; margin: 5px 0 0 0;">Amount: ₹5,000</p>
+            </div>
+
+            <!-- STEP 1: Details -->
+            <div class="step-content active" id="step1">
+                <form id="detailsForm">
+                    <div class="form-group">
+                        <label for="fullName">Full Name *</label>
+                        <input type="text" class="form-control" id="fullName" name="fullName" placeholder="Enter your full name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phoneNumber">Phone Number *</label>
+                        <input type="tel" class="form-control" id="phoneNumber" name="phoneNumber" placeholder="Enter your phone number" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Select Payment Method *</label>
+                        <div class="payment-methods" style="margin: 20px 0 0 0;">
+                            <label class="payment-option">
+                                <input type="radio" name="paymentMethod" value="esewa" required>
+                                <span class="payment-content">Esewa</span>
+                                <div class="payment-img">📱</div>
+                            </label>
+
+                            <label class="payment-option">
+                                <input type="radio" name="paymentMethod" value="khalti" required>
+                                <span class="payment-content">Khalti</span>
+                                <div class="payment-img">💳</div>
+                            </label>
+
+                            <label class="payment-option">
+                                <input type="radio" name="paymentMethod" value="fonepay" required>
+                                <span class="payment-content">FonePay</span>
+                                <div class="payment-img">☎️</div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn-next" onclick="goToStep2()">
+                        <i class="la la-arrow-right" style="margin-right: 8px;"></i> Next
+                    </button>
+                </form>
+            </div>
+
+            <!-- STEP 2: Payment Details -->
+            <div class="step-content" id="step2">
+                <div style="margin-bottom: 30px;">
+                    <h5 style="color: #1800b0; font-weight: 700; margin-bottom: 20px;">Payment Information</h5>
+                    <div class="qr-display" id="paymentQR">
+                        <img id="qrImage" src="" alt="Payment QR Code" style="max-width: 300px;">
+                        <p id="paymentText"></p>
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button type="button" class="btn-next btn-back" onclick="goToStep1()">
+                        <i class="la la-arrow-left"></i> Back
+                    </button>
+                    <button type="button" class="btn-next" onclick="goToStep3()">
+                        Next <i class="la la-arrow-right" style="margin-left: 8px;"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- STEP 3: Upload Payment -->
+            <div class="step-content" id="step3">
+                <div class="form-group">
+                    <label>Upload Payment Screenshot *</label>
+                    <div class="file-upload-box" onclick="document.getElementById('screenshot').click();">
+                        <input type="file" id="screenshot" name="screenshot" accept="image/jpeg,image/jpg,image/png,image/webp,image/avif" required>
+                        <label for="screenshot" class="file-upload-label">
+                            <div class="file-upload-icon"><i class="la la-cloud-upload"></i></div>
+                            <div class="file-upload-text">Click to upload screenshot</div>
+                            <small style="color: #999;">or drag and drop</small>
+                        </label>
+                        <div class="file-name" id="fileName"></div>
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button type="button" class="btn-next btn-back" onclick="goToStep2()">
+                        <i class="la la-arrow-left"></i> Back
+                    </button>
+                    <button type="button" class="btn-submit" onclick="submitCheckout()">
+                        <i class="la la-lock" style="margin-right: 8px;"></i> Buy This Package
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="success-modal" id="successModal">
+        <div class="success-content">
+            <div class="success-icon">
+                <i class="la la-check"></i>
+            </div>
+            <h2>Payment Submitted!</h2>
+            <p style="margin: 15px 0;">Your payment screenshot has been received.</p>
+            <p class="highlight">⏳ Wait a moment</p>
+            <p class="highlight">Admin will add your money</p>
+            <p style="margin-top: 20px; color: #999; font-size: 14px; line-height: 1.8;">Our admin team will verify and process your investment shortly. You will receive a confirmation notification.</p>
+            <button type="button" class="close-btn" onclick="closeSuccess()">Back to Dashboard</button>
+        </div>
+    </div>
+
+    <script src="../supabase-config.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+        const supabase = createClient(window.CAPITALNEST_SUPABASE.url, window.CAPITALNEST_SUPABASE.anonKey, {
+            auth: { persistSession: true, autoRefreshToken: true }
+        });
+        window.CAPITALNEST_SUPABASE_CLIENT = supabase;
+    </script>
+    <script>
+        // Get plan details from localStorage
+        function loadPlanDetails() {
+            const planData = JSON.parse(localStorage.getItem('selectedPlan') || '{"name":"Starter","amount":"₹5,000"}');
+            document.getElementById('planName').textContent = planData.name + ' Plan';
+            document.getElementById('planAmount').textContent = 'Amount: ' + planData.amount;
+        }
+
+        function parseCurrencyAmount(value) {
+            if (!value) return 0;
+            return Number(String(value).replace(/[^0-9.]/g, '')) || 0;
+        }
+
+        function getPlanDuration(planName) {
+            const map = {
+                Starter: 7,
+                Growth: 30,
+                Premium: 45,
+                Elite: 60,
+                Diamond: 70,
+                Platinum: 85,
+                'Gold Premium': 100
+            };
+            return map[planName] || 30;
+        }
+
+        // Step navigation
+        function showStep(stepNum) {
+            document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
+            document.getElementById('step' + stepNum).classList.add('active');
+            
+            document.querySelectorAll('.step').forEach(el => el.classList.remove('active', 'completed'));
+            for(let i = 1; i < stepNum; i++) {
+                document.getElementById('step' + i + '-indicator').classList.add('completed');
+            }
+            document.getElementById('step' + stepNum + '-indicator').classList.add('active');
+        }
+
+        function goToStep1() {
+            showStep(1);
+            window.scrollTo(0, 0);
+        }
+
+        function goToStep2() {
+            const fullName = document.getElementById('fullName').value.trim();
+            const phoneNumber = document.getElementById('phoneNumber').value.trim();
+            const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked');
+
+            if (!fullName || !phoneNumber || !paymentMethod) {
+                alert('Please fill in all fields');
+                return;
+            }
+
+            const method = paymentMethod.value;
+            const methodNames = {
+                'esewa': 'Esewa',
+                'khalti': 'Khalti',
+                'fonepay': 'FonePay'
+            };
+
+            // Map payment methods to images
+            const methodImages = {
+                'esewa': '../assets/img/ESEWA.jpg',
+                'khalti': '../assets/img/KHALTI.jpg',
+                'fonepay': '../assets/img/FONEYPAY.jpg'
+            };
+
+            document.getElementById('qrImage').src = methodImages[method];
+            document.getElementById('paymentText').textContent = 'Scan this QR code with your ' + methodNames[method] + ' app';
+
+            localStorage.setItem('checkoutData', JSON.stringify({
+                fullName: fullName,
+                phoneNumber: phoneNumber,
+                paymentMethod: method
+            }));
+
+            showStep(2);
+            window.scrollTo(0, 0);
+        }
+
+        function goToStep3() {
+            showStep(3);
+            window.scrollTo(0, 0);
+        }
+
+        function buildPaymentProofPath(userId, file) {
+            const originalName = (file?.name || 'payment-proof').split('.')[0] || 'payment-proof';
+            const safeBaseName = originalName
+                .replace(/[^a-zA-Z0-9-_]+/g, '-')
+                .replace(/^-+|-+$/g, '')
+                .slice(0, 40) || 'payment-proof';
+            const uniqueSuffix = (typeof crypto !== 'undefined' && crypto.randomUUID)
+                ? crypto.randomUUID()
+                : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+            const fileExt = (file?.name?.split('.').pop() || 'png').toLowerCase();
+            return `payment-proofs/${userId}/${safeBaseName}-${uniqueSuffix}.${fileExt}`;
+        }
+
+        function isAllowedPaymentMimeType(mimeType) {
+            const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/avif'];
+            return allowed.includes((mimeType || '').toLowerCase());
+        }
+
+        async function convertAvifToBrowserCompatibleImage(file) {
+            if (!file || file.type !== 'image/avif') {
+                return {
+                    file,
+                    converted: false,
+                    originalMimeType: file?.type || null,
+                    convertedMimeType: null
+                };
+            }
+
+            const originalName = file.name || 'payment-proof.avif';
+            const baseName = originalName.replace(/\.[^/.]+$/, '') || 'payment-proof';
+
+            console.log('AVIF detected for payment proof upload:', {
+                originalFileName: file.name,
+                originalMimeType: file.type,
+            });
+
+            const objectUrl = URL.createObjectURL(file);
+
+            try {
+                const img = await new Promise((resolve, reject) => {
+                    const image = new Image();
+                    image.onload = () => resolve(image);
+                    image.onerror = () => reject(new Error('Failed to decode AVIF image in browser.'));
+                    image.src = objectUrl;
+                });
+
+                const canvas = document.createElement('canvas');
+                canvas.width = img.naturalWidth || img.width || 1024;
+                canvas.height = img.naturalHeight || img.height || 1024;
+
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    throw new Error('Canvas context not available for AVIF conversion.');
+                }
+
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                let targetMimeType = 'image/jpeg';
+                let outputBlob = await new Promise((resolve) => {
+                    canvas.toBlob(resolve, targetMimeType, 0.92);
+                });
+
+                if (!outputBlob) {
+                    targetMimeType = 'image/png';
+                    outputBlob = await new Promise((resolve) => {
+                        canvas.toBlob(resolve, targetMimeType, 0.92);
+                    });
+                }
+
+                if (!outputBlob) {
+                    throw new Error('Unable to convert AVIF to a browser-supported image format.');
+                }
+
+                const convertedExtension = targetMimeType === 'image/png' ? 'png' : 'jpg';
+                const convertedFile = new File([outputBlob], `${baseName}.${convertedExtension}`, {
+                    type: targetMimeType,
+                    lastModified: Date.now()
+                });
+
+                console.log('AVIF conversion completed:', {
+                    originalFileName: file.name,
+                    originalMimeType: file.type,
+                    convertedMimeType: targetMimeType,
+                    finalUploadFileName: convertedFile.name
+                });
+
+                return {
+                    file: convertedFile,
+                    converted: true,
+                    originalMimeType: file.type,
+                    convertedMimeType: targetMimeType
+                };
+            } catch (error) {
+                console.error('AVIF conversion failed:', error);
+                throw error;
+            } finally {
+                URL.revokeObjectURL(objectUrl);
+            }
+        }
+
+        // File upload
+        document.getElementById('screenshot').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) {
+                document.getElementById('fileName').textContent = '';
+                return;
+            }
+
+            if (!file.type || !isAllowedPaymentMimeType(file.type)) {
+                document.getElementById('fileName').textContent = '❌ Please upload a valid image file';
+                document.getElementById('screenshot').value = '';
+                return;
+            }
+
+            const message = file.type === 'image/avif'
+                ? '✓ ' + file.name + ' selected (AVIF will be converted before upload)'
+                : '✓ ' + file.name + ' uploaded';
+            document.getElementById('fileName').textContent = message;
+        });
+
+        // Drag and drop
+        const fileBox = document.querySelector('.file-upload-box');
+        fileBox.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileBox.style.borderColor = '#1800b0';
+            fileBox.style.background = '#f0f4ff';
+        });
+
+        fileBox.addEventListener('dragleave', () => {
+            fileBox.style.borderColor = '#2a30fe';
+            fileBox.style.background = '#f8fafc';
+        });
+
+        fileBox.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && isAllowedPaymentMimeType(files[0].type)) {
+                document.getElementById('screenshot').files = files;
+                const event = new Event('change');
+                document.getElementById('screenshot').dispatchEvent(event);
+            }
+            fileBox.style.borderColor = '#2a30fe';
+            fileBox.style.background = '#f8fafc';
+        });
+
+        async function submitCheckout() {
+            const screenshot = document.getElementById('screenshot').files[0];
+            if (!screenshot) {
+                alert('Please upload payment screenshot');
+                return;
+            }
+
+            if (!screenshot.type || !isAllowedPaymentMimeType(screenshot.type)) {
+                alert('Please upload a valid image file for the payment screenshot (JPEG, JPG, PNG, WEBP, or AVIF).');
+                console.error('Invalid screenshot type:', screenshot.type, screenshot.name);
+                return;
+            }
+
+            let processedScreenshot = screenshot;
+            let convertedMimeType = null;
+
+            if (screenshot.type === 'image/avif') {
+                try {
+                    const conversionResult = await convertAvifToBrowserCompatibleImage(screenshot);
+                    processedScreenshot = conversionResult.file;
+                    convertedMimeType = conversionResult.convertedMimeType;
+                    console.log('Payment proof conversion summary:', {
+                        originalFileName: screenshot.name,
+                        originalMimeType: screenshot.type,
+                        convertedMimeType: convertedMimeType,
+                        finalUploadFileName: processedScreenshot.name,
+                    });
+                } catch (error) {
+                    console.error('Failed to convert AVIF payment screenshot:', error);
+                    alert('The selected AVIF image could not be converted for upload. Please choose a JPEG, PNG, or WEBP image instead.');
+                    return;
+                }
+            }
+
+            const supabase = window.CAPITALNEST_SUPABASE_CLIENT;
+            if (!supabase) {
+                alert('Supabase client is not ready. Please refresh the page and try again.');
+                return;
+            }
+
+            const { data: { user }, error: userError } = await supabase.auth.getUser();
+            if (userError || !user) {
+                alert('Please log in to complete your investment.');
+                window.location.href = '../login.html';
+                return;
+            }
+
+            const selectedPlan = JSON.parse(localStorage.getItem('selectedPlan') || '{"name":"Starter","amount":"₹5,000"}');
+            const checkoutData = JSON.parse(localStorage.getItem('checkoutData') || '{}');
+            const amount = parseCurrencyAmount(selectedPlan.amount);
+            const planName = selectedPlan.name || 'Starter';
+            const durationDays = getPlanDuration(planName);
+            const customerName = (checkoutData.fullName || '').trim() || (user.user_metadata?.full_name || user.email || 'Customer');
+            const phoneNumber = (checkoutData.phoneNumber || '').trim();
+            const paymentMethod = checkoutData.paymentMethod || 'esewa';
+
+            let proofUrl = '';
+            try {
+                console.log('Preparing payment proof upload:', {
+                    originalFileName: screenshot.name,
+                    originalMimeType: screenshot.type,
+                    convertedMimeType: convertedMimeType,
+                    finalUploadFileName: processedScreenshot.name,
+                    bucketName: 'payment-proofs'
+                });
+
+                const storagePath = buildPaymentProofPath(user.id, processedScreenshot);
+                const { data: uploadData, error: uploadError } = await supabase.storage
+                    .from('payment-proofs')
+                    .upload(storagePath, processedScreenshot, {
+                        cacheControl: '3600',
+                        upsert: false,
+                        contentType: processedScreenshot.type || 'image/png'
+                    });
+
+                if (uploadError) {
+                    console.error('Exact Supabase Storage error:', uploadError);
+                    throw uploadError;
+                }
+
+                console.log('Payment proof uploaded successfully:', {
+                    uploadedPath: uploadData?.path,
+                    finalUploadFileName: processedScreenshot.name,
+                    bucketName: 'payment-proofs'
+                });
+
+                const { data: publicUrlData } = supabase.storage
+                    .from('payment-proofs')
+                    .getPublicUrl(uploadData.path);
+
+                proofUrl = publicUrlData?.publicUrl || '';
+                if (!proofUrl) {
+                    throw new Error('Supabase did not return a public URL for the uploaded proof.');
+                }
+            } catch (uploadError) {
+                console.error('Payment proof upload failed:', uploadError);
+                const errorMessage = uploadError?.message || 'Unknown Supabase storage error';
+                const storageError = uploadError?.error || uploadError;
+                console.error('Exact Supabase Storage error object:', storageError);
+                alert(`Payment screenshot upload failed.\n\nDetails: ${errorMessage}\n\nFix the Supabase Storage bucket named "payment-proofs" and its policies, then try again.`);
+                return;
+            }
+
+            const { data: txData, error: insertTransactionError } = await supabase
+                .from('transactions')
+                .insert({
+                    user_id: user.id,
+                    type: 'investment',
+                    amount: amount,
+                    payment_method: paymentMethod,
+                    status: 'pending',
+                    note: `Investment purchase: ${planName} plan - ${customerName}`
+                })
+                .select();
+
+            if (insertTransactionError) {
+                console.error('Transaction insert failed:', insertTransactionError);
+                alert('Investment was saved, but the transaction record could not be created.');
+                return;
+            }
+
+            const investmentPayload = {
+                user_id: user.id,
+                plan_name: planName,
+                amount: amount,
+                duration_days: durationDays,
+                status: 'pending'
+            };
+
+            console.log('Submitting investment record to Supabase:', investmentPayload);
+
+            const { data: investmentData, error: insertInvestmentError } = await supabase
+                .from('user_investments')
+                .insert([investmentPayload])
+                .select();
+
+            console.log('Supabase user_investments insert response:', {
+                data: investmentData,
+                error: insertInvestmentError,
+                message: insertInvestmentError?.message,
+                details: insertInvestmentError?.details,
+                hint: insertInvestmentError?.hint,
+                code: insertInvestmentError?.code
+            });
+
+            if (insertInvestmentError) {
+                console.error('Investment insert failed with real Supabase error:', {
+                    data: investmentData,
+                    error: insertInvestmentError,
+                    message: insertInvestmentError?.message,
+                    details: insertInvestmentError?.details,
+                    hint: insertInvestmentError?.hint,
+                    code: insertInvestmentError?.code
+                });
+                alert(
+                    `Failed to save investment.\n\nSupabase error: ${insertInvestmentError.message || 'Unknown error'}\nDetails: ${insertInvestmentError.details || 'N/A'}\nHint: ${insertInvestmentError.hint || 'N/A'}\nCode: ${insertInvestmentError.code || 'N/A'}`
+                );
+                return;
+            }
+
+            const { data: approvalData, error: approvalError } = await supabase
+                .from('payment_approvals')
+                .insert({
+                    user_id: user.id,
+                    transaction_id: txData?.[0]?.id || null,
+                    amount: amount,
+                    payment_method: paymentMethod,
+                    status: 'pending',
+                    notes: `Investment: ${planName} plan | Customer: ${customerName}`,
+                    customer_name: customerName,
+                    phone_number: phoneNumber,
+                    payment_proof_url: proofUrl
+                })
+                .select()
+                .single();
+
+            if (approvalError) {
+                console.error('Payment approval insert failed with exact Supabase error:', {
+                    data: approvalData,
+                    error: approvalError,
+                    message: approvalError.message,
+                    details: approvalError.details,
+                    hint: approvalError.hint,
+                    code: approvalError.code
+                });
+                alert(
+                    `Investment was saved, but admin approval could not be created.\n\n` +
+                    `Supabase error: ${approvalError.message || 'Unknown error'}\n` +
+                    `Details: ${approvalError.details || 'N/A'}\n` +
+                    `Hint: ${approvalError.hint || 'N/A'}\n` +
+                    `Code: ${approvalError.code || 'N/A'}`
+                );
+                return;
+            }
+
+            console.log('Payment approval created successfully:', approvalData);
+
+            showSuccess();
+        }
+
+        function showSuccess() {
+            document.getElementById('successModal').classList.add('active');
+        }
+
+        function closeSuccess() {
+            document.getElementById('successModal').classList.remove('active');
+            window.location.href = 'investment.html';
+        }
+
+        // Load plan on page load
+        window.addEventListener('load', loadPlanDetails);
+    </script>
+</body>
+
+</html>
