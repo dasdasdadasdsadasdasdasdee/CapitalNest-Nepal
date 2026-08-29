@@ -1,99 +1,68 @@
 # ⚡ Quick Start Reference
 
-## 🚀 5-Minute Setup
+## 🚀 Setup
 
 ```bash
-# 1. Run the database migration (in Supabase SQL Editor)
-# Copy/paste: supabase/migrations/20260830_add_telegram_payment_approvals.sql
+# 1. Run the database migration in Supabase SQL Editor
+# Copy/paste the complete file:
+# supabase/migrations/20260834000000_manual_investment_verification_system.sql
 
-# 2. Install bot dependencies
-cd bot
-npm install
+# 2. Open the app locally
+python -m http.server 8000
 
-# 3. Create .env file
-echo "TELEGRAM_BOT_TOKEN=YOUR_TOKEN_HERE" > .env
-
-# 4. Start the bot
-npm start
-
-# 5. Mark a user as admin
-# In Supabase: UPDATE profiles SET is_admin=true WHERE id='user-id'
-
-# 6. Regenerate bot token & update .env
-# Message @BotFather: /mybots → Select bot → API Token → /regeneratetoken
+# 3. Log in and submit an investment verification request
+# Visit: http://localhost:8000/user/investment.html
 ```
 
 ## 🎯 Key Points
 
 | What | Where | How It Works |
 |------|-------|-------------|
-| **Deposit Form** | `/user/wallet.html` | Creates `payment_approval` record |
-| **Bot Approval** | Telegram | Updates `payment_approvals.status` → `approved` |
-| **Auto Balance** | Supabase Trigger | Updates `user_balances` table |
-| **Live Sync** | `realtime-balance-sync.js` | Frontend listens & updates all pages |
-| **Admin Panel** | `/admin/payment-approvals.html` | See all approvals in real-time |
+| **Investment Form** | `/user/checkout.html` | Uploads proof and creates an `investments` record with `pending` status |
+| **Approval Flow** | `/admin/payment-approvals.html` | Admin reviews and updates `investments.status` |
+| **Live Sync** | `/user/investment.html` | Realtime refreshes the user's investment list |
+| **Admin Panel** | `/admin/payment-approvals.html` | See all approvals in real time |
 
-## 📱 Test It
+## ✅ Test It
 
-1. Go to: http://localhost:8000/user/wallet.html
-2. Fill "Fund Wallet" form
-3. Check Telegram for bot message
-4. Click "Approve" in Telegram
-5. Watch dashboard balance update **instantly**! ✨
+1. Go to: http://localhost:8000/user/investment.html
+2. Select an investment plan and continue to checkout
+3. Upload a payment screenshot and submit the request
+4. Open the admin approval page
+5. Approve or reject the request
+6. Watch the investment status update instantly
 
 ## 🔧 Core Components
 
 ```javascript
-// Real-time subscription (runs on wallet.html & dashboard)
-import RealtimeBalanceSync from '../assets/js/realtime-balance-sync.js';
-const balanceSync = new RealtimeBalanceSync(url, key);
-balanceSync.on('balance-updated', (newBalance) => {
-    // Update UI automatically
-});
-
-// Payment approval flow
-1. User submits → Creates payment_approval (pending)
-2. Bot notified → Sends Telegram button
-3. Admin approves → Updates status to "approved"
-4. Trigger fires → Updates user_balances
-5. Frontend subscribes → UI updates instantly
+// Investment verification flow
+1. User submits -> Uploads proof and creates investments (pending)
+2. Admin reviews -> Updates investments.status to "approved" or "rejected"
+3. Frontend subscribes -> The dashboard refreshes the investment list
 ```
-
-## ⚠️ Security Checklist
-
-- [ ] Generated new Telegram bot token (the old one is public)
-- [ ] Bot token stored in `.env` (not in code)
-- [ ] `.env` added to `.gitignore`
-- [ ] Admin user marked with `is_admin = true`
-- [ ] Admin's `telegram_id` set in database
-- [ ] Database triggers verified in Supabase
 
 ## 📊 Database Tables
 
 ```sql
 -- Check these exist after migration:
-SELECT table_name FROM information_schema.tables 
-WHERE table_name IN ('payment_approvals', 'user_balances');
+SELECT table_name
+FROM information_schema.tables
+WHERE table_schema = 'public'
+    AND table_name IN ('investments', 'investment_transactions', 'investment_plans');
 
--- Should return 2 rows
+-- The result should contain all three tables.
 ```
 
 ## 🐛 If Something Breaks
 
 ```javascript
-// 1. Check bot is running
-// Terminal should show: ✅ Bot is listening for commands
+// 1. Check the investment record in Supabase
+// Query: SELECT * FROM public.investments ORDER BY created_at DESC;
 
-// 2. Check real-time subscription
-// Browser console should show: ✅ Real-time sync initialized for user: ...
+// 2. Check the browser console for the exact Supabase error.
 
-// 3. Check database trigger
-// Query: SELECT * FROM user_balances WHERE user_id = 'your-id'
-
-// 4. Check Telegram connection
-// Run: npm start (in bot directory)
-// Message /start to your bot
-// Should see terminal log with your Telegram ID
+// 3. If the table query above returns no rows, run the complete canonical
+// migration in Supabase SQL Editor and refresh the browser page.
 ```
 
 ## 🎯 To Add New Payment Methods
@@ -111,23 +80,6 @@ Edit `/user/wallet.html`:
         <option value="YOUR_NEW_METHOD">Your New Method</option>
     </optgroup>
 </select>
-```
-
-## 📞 Support Commands
-
-```bash
-# Restart bot
-npm start
-
-# Check logs
-npm start 2>&1 | grep -E "✅|❌|💰"
-
-# Regenerate Telegram token
-# Message @BotFather /mybots → Select bot → /regeneratetoken
-
-# Force database refresh
-# Go to Supabase Dashboard → SQL Editor
-# Run: SELECT * FROM payment_approvals LIMIT 5;
 ```
 
 ---

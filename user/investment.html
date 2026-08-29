@@ -511,7 +511,7 @@
                         <div class="col-md-4 mb-3">
                             <div class="card card1">
                                 <div class="card-body"><span class="mb-3">Wallet Balance</span>
-                                    <h1 id="investmentWalletBalanceValue" class="dashboard-heading-h">NPR 0<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-arrow-up green-up">
+                                    <h1 id="investmentWalletBalanceValue" class="dashboard-heading-h">Loading...<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-arrow-up green-up">
   <path fill-rule="evenodd" d="M8 15a.5.5 0 0 0 .5-.5V2.707l3.146 3.147a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L7.5 2.707V14.5a.5.5 0 0 0 .5.5z"></path>
 </svg></h1>
                                 </div>
@@ -520,7 +520,7 @@
                         <div class="col-md-4 mb-3">
                             <div class="card card1">
                                 <div class="card-body"><span class="mb-3">Invested</span>
-                                    <h1 id="investmentInvestedValue" class="dashboard-heading-h">NPR 0<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-plus green-plus text-success">
+                                    <h1 id="investmentInvestedValue" class="dashboard-heading-h">Loading...<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-plus green-plus text-success">
   <path fill-rule="evenodd" d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"></path>
 </svg></h1>
                                 </div>
@@ -529,7 +529,7 @@
                         <div class="col-md-4 mb-3">
                             <div class="card card1">
                                 <div class="card-body"><span class="mb-3">Withdrawn</span>
-                                    <h1 id="investmentWithdrawnValue" class="dashboard-heading-h">NPR 0<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-arrow-down red-down">
+                                    <h1 id="investmentWithdrawnValue" class="dashboard-heading-h">Loading...<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-arrow-down red-down">
   <path fill-rule="evenodd" d="M8 1a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 13.293V1.5A.5.5 0 0 1 8 1z"></path>
 </svg></h1>
                                 </div>
@@ -574,12 +574,16 @@
     <script src="https://cdn.jsdelivr.net/npm/typed.js@2.0.9"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.4.1/jquery.easing.min.js"></script>
     <script src="../assets/js/script.min.js"></script>
+    <script src="../assets/js/live-financial-balance.js"></script>
     <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
         const supabase = createClient(window.CAPITALNEST_SUPABASE.url, window.CAPITALNEST_SUPABASE.anonKey, {
             auth: { persistSession: true, autoRefreshToken: true }
         });
         window.CAPITALNEST_SUPABASE_CLIENT = supabase;
+        if (window.CAPITALNEST_FINANCE) {
+            await window.CAPITALNEST_FINANCE.start();
+        }
     </script>
     <script>
         function formatCurrency(amount) {
@@ -608,38 +612,29 @@
                 return;
             }
 
-            const [{ data: transactions = [] }, { data: investmentsFromTable = [] }] = await Promise.all([
+            if (window.__investmentRealtimeChannel) {
+                await supabase.removeChannel(window.__investmentRealtimeChannel);
+                window.__investmentRealtimeChannel = null;
+            }
+
+            window.__investmentRealtimeChannel = supabase.channel('investment-status-updates');
+            window.__investmentRealtimeChannel
+                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'investments', filter: `user_id=eq.${user.id}` }, () => {
+                    loadInvestmentPageData();
+                })
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'investments', filter: `user_id=eq.${user.id}` }, () => {
+                    loadInvestmentPageData();
+                })
+                .subscribe();
+
+            const [{ data: transactions = [] }, { data: investments = [] }] = await Promise.all([
                 supabase.from('transactions').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-                supabase.from('user_investments').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
+                supabase.from('investments').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
             ]);
 
-            const investmentTransactions = transactions.filter((tx) => ((tx.type || '').toLowerCase() === 'investment') && !['pending', 'rejected', 'failed'].includes((tx.status || '').toLowerCase()));
-            const investments = (investmentsFromTable.length ? investmentsFromTable : investmentTransactions.map((transaction) => ({
-                    id: transaction.id,
-                    user_id: transaction.user_id,
-                    plan_name: transaction.note ? transaction.note.split(':')[1]?.trim() || 'Investment' : 'Investment',
-                    amount: Number(transaction.amount || 0),
-                    duration_days: 0,
-                    status: transaction.status || 'active',
-                    created_at: transaction.created_at
-                }))).filter((item) => !['pending', 'rejected', 'failed'].includes((item.status || '').toLowerCase()));
-
-            let totalWithdrawn = 0;
-            transactions.forEach((tx) => {
-                if ((tx.type || '').toLowerCase() === 'withdrawal') {
-                    totalWithdrawn += Number(tx.amount || 0);
-                }
-            });
-
-            const totalInvested = investments.reduce((sum, item) => sum + Number(item.amount || 0), 0);
-            const totalDeposits = transactions
-                .filter((tx) => ['deposit', 'welcome_bonus', 'bonus', 'refund'].includes((tx.type || '').toLowerCase()))
-                .reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
-            const walletBalance = Math.max(totalDeposits - totalWithdrawn - totalInvested, 0);
-
-            document.getElementById('investmentWalletBalanceValue').textContent = formatCurrency(walletBalance);
-            document.getElementById('investmentInvestedValue').textContent = formatCurrency(totalInvested);
-            document.getElementById('investmentWithdrawnValue').textContent = formatCurrency(totalWithdrawn);
+            if (window.CAPITALNEST_FINANCE) {
+                await window.CAPITALNEST_FINANCE.refreshFinancialSummary();
+            }
 
             const investmentTableBody = document.getElementById('investmentTableBody');
             if (!investments.length) {
@@ -647,17 +642,27 @@
                 return;
             }
 
-            investmentTableBody.innerHTML = investments.map((item, index) => `
-                <tr>
-                    <td>${index + 1}</td>
-                    <td><a href="investment-details.html">${(item.id || '').slice(0, 10).toUpperCase() || 'INV'}</a></td>
-                    <td><p class="text-nowrap table-p">${formatCurrency(item.amount)}</p></td>
-                    <td><p class="text-nowrap table-p green"><strong>${item.status || 'Active'}</strong></p></td>
-                    <td><p class="text-nowrap table-p green"><strong>${item.plan_name || 'Plan'}</strong></p></td>
-                    <td><p class="text-nowrap table-p">${formatDate(item.created_at)}</p></td>
-                    <td><a class="btn btn-sm topbtn" role="button" href="top.html">Top Up</a></td>
-                </tr>
-            `).join('');
+            investmentTableBody.innerHTML = investments.map((item, index) => {
+                const status = (item.status || 'pending').toLowerCase();
+                const statusMap = {
+                    pending: { label: 'Payment verification pending', className: 'text-warning' },
+                    approved: { label: 'Payment approved', className: 'text-success' },
+                    rejected: { label: 'Payment rejected', className: 'text-danger' }
+                };
+                const state = statusMap[status] || { label: 'Pending', className: 'text-warning' };
+
+                return `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td><a href="investment-details.html">${(item.id || '').slice(0, 10).toUpperCase() || 'INV'}</a></td>
+                        <td><p class="text-nowrap table-p">${formatCurrency(item.investment_amount)}</p></td>
+                        <td><p class="text-nowrap table-p ${state.className}"><strong>${state.label}</strong></p></td>
+                        <td><p class="text-nowrap table-p"><strong>${item.plan_name || 'Plan'}</strong></p></td>
+                        <td><p class="text-nowrap table-p">${formatDate(item.created_at)}</p></td>
+                        <td><a class="btn btn-sm topbtn" role="button" href="top.html">Top Up</a></td>
+                    </tr>
+                `;
+            }).join('');
         }
 
         document.addEventListener('DOMContentLoaded', async function () {

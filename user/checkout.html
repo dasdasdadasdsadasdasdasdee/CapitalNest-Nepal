@@ -501,6 +501,9 @@
                 <p style="margin-bottom: 5px; font-size: 13px; color: #666; font-weight: 400; margin: 0;">Selected Plan</p>
                 <p id="planName" style="font-size: 18px; margin: 8px 0 0 0;">Starter Plan</p>
                 <p id="planAmount" style="font-size: 16px; margin: 5px 0 0 0;">Amount: ₹5,000</p>
+                <p style="margin-top: 14px; font-size: 13px; color: #475569; line-height: 1.6; font-weight: 400;">
+                    This platform provides a manual review and verification workflow. Investment terms, risk disclosures, and account conditions are governed by the platform’s official documentation and compliance notices.
+                </p>
             </div>
 
             <!-- STEP 1: Details -->
@@ -906,6 +909,7 @@
             const paymentMethod = checkoutData.paymentMethod || 'esewa';
 
             let proofUrl = '';
+            let storagePath = '';
             try {
                 console.log('Preparing payment proof upload:', {
                     originalFileName: screenshot.name,
@@ -915,7 +919,7 @@
                     bucketName: 'payment-proofs'
                 });
 
-                const storagePath = buildPaymentProofPath(user.id, processedScreenshot);
+                storagePath = buildPaymentProofPath(user.id, processedScreenshot);
                 const { data: uploadData, error: uploadError } = await supabase.storage
                     .from('payment-proofs')
                     .upload(storagePath, processedScreenshot, {
@@ -952,100 +956,83 @@
                 return;
             }
 
-            const { data: txData, error: insertTransactionError } = await supabase
-                .from('transactions')
-                .insert({
-                    user_id: user.id,
-                    type: 'investment',
-                    amount: amount,
-                    payment_method: paymentMethod,
-                    status: 'pending',
-                    note: `Investment purchase: ${planName} plan - ${customerName}`
-                })
-                .select();
-
-            if (insertTransactionError) {
-                console.error('Transaction insert failed:', insertTransactionError);
-                alert('Investment was saved, but the transaction record could not be created.');
-                return;
-            }
-
             const investmentPayload = {
                 user_id: user.id,
+                email: user.email || 'unknown@example.com',
+                investment_plan: planName,
+                amount: Number(amount || 0),
+                payment_proof_url: proofUrl || storagePath,
+                status: 'pending',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                user_email: user.email || 'unknown@example.com',
                 plan_name: planName,
-                amount: amount,
-                duration_days: durationDays,
-                status: 'pending'
+                investment_amount: Number(amount || 0),
+                payment_proof_path: storagePath,
+                admin_note: null,
+                transaction_ref: null,
+                approved_at: null,
+                rejected_at: null,
+                approved_by: null,
+                rejected_by: null,
             };
 
-            console.log('Submitting investment record to Supabase:', investmentPayload);
+            console.log('Submitting investment verification record to Supabase:', investmentPayload);
 
             const { data: investmentData, error: insertInvestmentError } = await supabase
-                .from('user_investments')
+                .from('investments')
                 .insert([investmentPayload])
                 .select();
 
-            console.log('Supabase user_investments insert response:', {
-                data: investmentData,
-                error: insertInvestmentError,
-                message: insertInvestmentError?.message,
-                details: insertInvestmentError?.details,
-                hint: insertInvestmentError?.hint,
-                code: insertInvestmentError?.code
+            if (insertInvestmentError) {
+                console.error('Investment insert failed with Supabase error:', insertInvestmentError);
+                alert(
+                    'Failed to save investment verification.\n\n' +
+                    'Check that the Supabase project is connected correctly and that the public.investments table exists in the database schema.\n\n' +
+                    `Details: ${insertInvestmentError.message || 'Unknown Supabase error'}`
+                );
+                return;
+            }
+
+            const createdInvestment = investmentData?.[0];
+            if (!createdInvestment?.id) {
+                alert('Investment was submitted but the record was not returned. Please check your account dashboard.');
+                return;
+            }
+
+            await supabase.from('investment_transactions').insert({
+                investment_id: createdInvestment.id,
+                user_id: user.id,
+                type: 'investment_submission',
+                amount: amount,
+                status: 'pending',
+                note: `Manual investment review for ${planName} plan`,
+                reference_id: createdInvestment.id,
             });
 
-            if (insertInvestmentError) {
-                console.error('Investment insert failed with real Supabase error:', {
-                    data: investmentData,
-                    error: insertInvestmentError,
-                    message: insertInvestmentError?.message,
-                    details: insertInvestmentError?.details,
-                    hint: insertInvestmentError?.hint,
-                    code: insertInvestmentError?.code
-                });
-                alert(
-                    `Failed to save investment.\n\nSupabase error: ${insertInvestmentError.message || 'Unknown error'}\nDetails: ${insertInvestmentError.details || 'N/A'}\nHint: ${insertInvestmentError.hint || 'N/A'}\nCode: ${insertInvestmentError.code || 'N/A'}`
-                );
-                return;
+            try {
+                const apiBaseUrl = window.CAPITALNEST_SUPABASE?.apiBaseUrl || '';
+                if (apiBaseUrl) {
+                    await fetch(`${apiBaseUrl.replace(/\/$/, '')}/api/investment-submission`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            investment: {
+                                ...createdInvestment,
+                                user_email: user.email,
+                                user_id: user.id,
+                                investment_amount: amount,
+                                plan_name: planName,
+                                payment_proof_path: storagePath,
+                            }
+                        })
+                    });
+                }
+            } catch (notificationError) {
+                console.warn('Telegram server notification skipped or failed:', notificationError);
             }
 
-            const { data: approvalData, error: approvalError } = await supabase
-                .from('payment_approvals')
-                .insert({
-                    user_id: user.id,
-                    transaction_id: txData?.[0]?.id || null,
-                    amount: amount,
-                    payment_method: paymentMethod,
-                    status: 'pending',
-                    notes: `Investment: ${planName} plan | Customer: ${customerName}`,
-                    customer_name: customerName,
-                    phone_number: phoneNumber,
-                    payment_proof_url: proofUrl
-                })
-                .select()
-                .single();
-
-            if (approvalError) {
-                console.error('Payment approval insert failed with exact Supabase error:', {
-                    data: approvalData,
-                    error: approvalError,
-                    message: approvalError.message,
-                    details: approvalError.details,
-                    hint: approvalError.hint,
-                    code: approvalError.code
-                });
-                alert(
-                    `Investment was saved, but admin approval could not be created.\n\n` +
-                    `Supabase error: ${approvalError.message || 'Unknown error'}\n` +
-                    `Details: ${approvalError.details || 'N/A'}\n` +
-                    `Hint: ${approvalError.hint || 'N/A'}\n` +
-                    `Code: ${approvalError.code || 'N/A'}`
-                );
-                return;
-            }
-
-            console.log('Payment approval created successfully:', approvalData);
-
+            console.log('Investment verification record created successfully:', createdInvestment);
             showSuccess();
         }
 

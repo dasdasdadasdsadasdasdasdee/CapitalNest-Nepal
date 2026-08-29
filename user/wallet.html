@@ -259,7 +259,7 @@
                         <div class="col-md-4 mb-3">
                             <div class="card card1">
                                 <div class="card-body"><span class="mb-3">Wallet Balance</span>
-                                    <h1 id="walletBalanceValue" class="dashboard-heading-h">NPR 0<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-arrow-up green-up">
+                                    <h1 id="walletBalanceValue" class="dashboard-heading-h">Loading...<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-arrow-up green-up">
   <path fill-rule="evenodd" d="M8 15a.5.5 0 0 0 .5-.5V2.707l3.146 3.147a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L7.5 2.707V14.5a.5.5 0 0 0 .5.5z"></path>
 </svg></h1>
                                 </div>
@@ -268,7 +268,7 @@
                         <div class="col-md-4 mb-3">
                             <div class="card card1">
                                 <div class="card-body"><span class="mb-3">Invested</span>
-                                    <h1 id="walletInvestedValue" class="dashboard-heading-h">NPR 0<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-plus green-plus text-success">
+                                    <h1 id="walletInvestedValue" class="dashboard-heading-h">Loading...<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-plus green-plus text-success">
   <path fill-rule="evenodd" d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"></path>
 </svg></h1>
                                 </div>
@@ -277,7 +277,7 @@
                         <div class="col-md-4 mb-3">
                             <div class="card card1">
                                 <div class="card-body"><span class="mb-3">Withdrawn</span>
-                                    <h1 id="walletWithdrawnValue" class="dashboard-heading-h">NPR 0<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-arrow-down red-down">
+                                    <h1 id="walletWithdrawnValue" class="dashboard-heading-h">Loading...<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-arrow-down red-down">
   <path fill-rule="evenodd" d="M8 1a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 13.293V1.5A.5.5 0 0 1 8 1z"></path>
 </svg></h1>
                                 </div>
@@ -321,6 +321,7 @@
     <script src="https://cdn.jsdelivr.net/npm/typed.js@2.0.9"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.4.1/jquery.easing.min.js"></script>
     <script src="../assets/js/script.min.js"></script>
+    <script src="../assets/js/live-financial-balance.js"></script>
     <script src="../assets/js/realtime-balance-sync.js"></script>
     <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
@@ -330,6 +331,9 @@
             auth: { persistSession: true, autoRefreshToken: true }
         });
         window.CAPITALNEST_SUPABASE_CLIENT = supabase;
+        if (window.CAPITALNEST_FINANCE) {
+            await window.CAPITALNEST_FINANCE.start();
+        }
         
         // Initialize real-time sync
         const balanceSync = new RealtimeBalanceSync(window.CAPITALNEST_SUPABASE.url, window.CAPITALNEST_SUPABASE.anonKey);
@@ -400,12 +404,9 @@
         const approvedInvestments = investments.filter((item) => !['pending', 'rejected', 'failed'].includes((item.status || '').toLowerCase()));
         const approvedInvestmentTransactions = transactions.filter((tx) => ((tx.type || '').toLowerCase() === 'investment') && !['pending', 'rejected', 'failed'].includes((tx.status || '').toLowerCase()));
 
-        // Get current balance from user_balances table (updated in real-time)
-        const { data: userBalance } = await supabase
-            .from('user_balances')
-            .select('*')
-            .eq('user_id', user.id)
-            .single();
+        if (window.CAPITALNEST_FINANCE) {
+            await window.CAPITALNEST_FINANCE.refreshFinancialSummary();
+        }
 
         let totalDeposit = 0;
         let totalWithdrawal = 0;
@@ -419,13 +420,6 @@
             if (type === 'withdrawal') totalWithdrawal += amount;
             if (type === 'investment' && !['pending', 'rejected', 'failed'].includes(status)) totalInvestment += amount;
         });
-
-        const investedAmount = approvedInvestments.reduce((sum, item) => sum + Number(item.amount || 0), 0) + approvedInvestmentTransactions.reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
-        const walletBalance = userBalance?.available_balance || Math.max(totalDeposit - totalWithdrawal - totalInvestment, 0);
-
-        document.getElementById('walletBalanceValue').textContent = formatCurrency(walletBalance);
-        document.getElementById('walletInvestedValue').textContent = formatCurrency(investedAmount);
-        document.getElementById('walletWithdrawnValue').textContent = formatCurrency(totalWithdrawal);
 
         const walletTableBody = document.getElementById('walletTableBody');
         if (!transactions.length) {
@@ -516,7 +510,7 @@
                 return;
             }
 
-            // Create payment approval request (this will trigger Telegram bot notification)
+            // Create payment approval request for admin review
             const { error: approvalError } = await supabase
                 .from('payment_approvals')
                 .insert({
@@ -534,7 +528,7 @@
                 return;
             }
 
-            alert('✅ Wallet deposit request submitted successfully!\n\nAdmin will review and approve your payment via Telegram.');
+            alert('✅ Wallet deposit request submitted successfully!\n\nAdmin will review and approve your payment.');
             $('#fundwallet').modal('hide');
             $('#fundwalletform')[0].reset();
             await loadWalletPageData();

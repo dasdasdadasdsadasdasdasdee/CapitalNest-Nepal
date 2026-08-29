@@ -46,46 +46,24 @@ USER DEPOSITS VIA WEBSITE
              │
              ↓
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                    TELEGRAM BOT SERVER                                  │
-│                    (Node.js - bot/bot-server.js)                       │
+│                   ADMIN REVIEW WORKFLOW                                  │
 │                                                                         │
-│  Bot listening on Supabase subscription:                              │
-│  • Detects new payment_approval INSERT event                         │
-│  • Fetches approval details from database                            │
-│  • Gets list of all admin users                                      │
+│  Admin checks payment requests in the dashboard                        │
+│  Reviews amount, proof, and customer information                       │
+│  Approves or rejects the request                                       │
 │                                                                         │
-│  For each admin with telegram_id:                                    │
-│  • Sends Telegram message:                                           │
-│    "🔔 New Payment Request                                          │
-│     💰 Amount: NPR 1000                                             │
-│     📱 Method: Bank Transfer                                        │
-│     ⏰ Time: 2:30 PM"                                               │
-│  • Adds inline buttons: [✅ Approve] [❌ Reject]                      │
-│                                                                         │
-│  ↓ Admin action in Telegram                                            │
+│  ↓ Admin action in dashboard                                           │
 │                                                                         │
 └────────────┬────────────────────────────────────────────────────────────┘
              │
              ↓
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                    TELEGRAM ADMIN APPROVES                              │
+│                  ADMIN APPROVAL UPDATE                                   │
 │                                                                         │
-│  Admin receives Telegram message                                       │
-│  Reviews payment details                                              │
-│  Clicks [✅ Approve] button                                            │
-│                                                                         │
-│  ↓ Bot callback handler triggers                                       │
-│                                                                         │
-│  Bot executes: approvePayment(approvalId)                             │
-│  • Updates Supabase: payment_approvals.status = 'approved'           │
-│  • Updates Supabase: payment_approvals.approved_at = now()          │
-│  • Updates Supabase: transactions.status = 'completed'              │
-│                                                                         │
-│  Bot sends Telegram confirmation:                                     │
-│  "✅ Payment Approved!                                                │
-│    Amount: NPR 1000                                                  │
-│    Status: APPROVED                                                  │
-│    User has been notified"                                           │
+│  Admin clicks approve or reject in the admin panel                     │
+│  • Updates Supabase: payment_approvals.status                          │
+│  • Updates Supabase: payment_approvals.approved_at = now()             │
+│  • Updates Supabase: transactions.status = 'completed'                 │
 │                                                                         │
 └────────────┬────────────────────────────────────────────────────────────┘
              │
@@ -169,15 +147,10 @@ Database
     ├─→ Supabase Subscription
     ├─→ Real-time Event
     ↓
-Telegram Bot
+Admin Dashboard
     ↓
-    ├─→ Notify Admin
-    ├─→ Send Buttons
-    ↓
-Admin Clicks
-    ↓
-    ├─→ Approve/Reject
-    ├─→ Update payment_approvals.status
+    ├─→ Review request
+    ├─→ Approve or reject
     ↓
 Database Trigger
     ↓
@@ -204,10 +177,9 @@ wallet.html        ←→  Supabase API  ←→  PostgreSQL
 dashboard.html           (REST)            Tables:
 admin panel              (WebSocket)        • profiles
                                             • transactions
-+ realtime-sync          Telegram Bot       • payment_approvals
-  module                 (Node.js)          • user_balances
-  (Browser)              bot-server.js
-                                            Triggers:
++ realtime-sync          Admin review       • payment_approvals
+  module                 workflow           • user_balances
+  (Browser)                                  Triggers:
   subscription                              • sync_balance
   listeners                                 • update_at_ts
   

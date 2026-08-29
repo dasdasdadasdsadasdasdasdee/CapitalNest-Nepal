@@ -228,19 +228,7 @@
                 window.location.href = '../login.html';
                 return false;
             }
-            
-            const { data: profile, error: profileError } = await supabase
-                .from('profiles')
-                .select('is_admin')
-                .eq('id', user.id)
-                .single();
-            
-            if (profileError || !profile?.is_admin) {
-                alert('⛔ Access Denied! This page is for admins only.');
-                window.location.href = '../home.html';
-                return false;
-            }
-            
+
             return true;
         }
         
@@ -265,10 +253,24 @@
             });
         }
         
+        async function getSignedProofUrl(path) {
+            if (!path) return null;
+            const { data, error } = await supabase.storage
+                .from('payment-proofs')
+                .createSignedUrl(path, 3600);
+
+            if (error || !data?.signedUrl) {
+                console.warn('Unable to create signed URL for proof:', error || path);
+                return null;
+            }
+
+            return data.signedUrl;
+        }
+
         async function loadApprovals() {
             const { data, error } = await supabase
-                .from('payment_approvals')
-                .select('*, profiles:user_id(email, full_name)')
+                .from('investments')
+                .select('*')
                 .order('created_at', { ascending: false });
             
             if (error) {
@@ -281,7 +283,7 @@
             updateStats();
         }
         
-        function renderApprovals() {
+        async function renderApprovals() {
             let filtered = allApprovals;
             if (currentFilter) {
                 filtered = allApprovals.filter(a => a.status === currentFilter);
@@ -298,87 +300,78 @@
                 `;
                 return;
             }
-            
-            container.innerHTML = filtered.map(approval => `
-                <div class="approval-card">
-                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
-                        <div>
-                            <h5 style="margin: 0 0 0.5rem 0; color: #1f2937;">
-                                ${approval.profiles?.full_name || 'User'}
-                            </h5>
-                            <p style="margin: 0; color: #6b7280; font-size: 0.875rem;">
-                                ${approval.profiles?.email || 'N/A'}
-                            </p>
-                        </div>
-                        <span class="status-badge status-${approval.status}">
-                            ${approval.status.charAt(0).toUpperCase() + approval.status.slice(1)}
-                        </span>
-                    </div>
-                    
-                    <div class="info-row">
-                        <span class="info-label">Amount:</span>
-                        <span class="info-value">${formatCurrency(approval.amount)}</span>
-                    </div>
-                    
-                    <div class="info-row">
-                        <span class="info-label">Payment Method:</span>
-                        <span class="info-value">${approval.payment_method || 'N/A'}</span>
-                    </div>
-                    
-                    <div class="info-row">
-                        <span class="info-label">Requested:</span>
-                        <span class="info-value">${formatDate(approval.created_at)}</span>
-                    </div>
-                    
-                    ${approval.customer_name ? `
-                        <div class="info-row">
-                            <span class="info-label">Customer Name:</span>
-                            <span class="info-value">${approval.customer_name}</span>
-                        </div>
-                    ` : ''}
 
-                    ${approval.phone_number ? `
+            const approvalCards = await Promise.all(filtered.map(async (approval) => {
+                const proofUrl = await getSignedProofUrl(approval.payment_proof_path);
+                return `
+                    <div class="approval-card">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+                            <div>
+                                <h5 style="margin: 0 0 0.5rem 0; color: #1f2937;">
+                                    ${approval.user_email || 'User'}
+                                </h5>
+                                <p style="margin: 0; color: #6b7280; font-size: 0.875rem;">
+                                    ${approval.user_id || 'N/A'}
+                                </p>
+                            </div>
+                            <span class="status-badge status-${approval.status}">
+                                ${approval.status ? approval.status.charAt(0).toUpperCase() + approval.status.slice(1) : 'Pending'}
+                            </span>
+                        </div>
+                        
                         <div class="info-row">
-                            <span class="info-label">Phone:</span>
-                            <span class="info-value">${approval.phone_number}</span>
+                            <span class="info-label">Amount:</span>
+                            <span class="info-value">${formatCurrency(approval.investment_amount)}</span>
                         </div>
-                    ` : ''}
-
-                    ${approval.notes ? `
+                        
                         <div class="info-row">
-                            <span class="info-label">Notes:</span>
-                            <span class="info-value">${approval.notes}</span>
+                            <span class="info-label">Plan:</span>
+                            <span class="info-value">${approval.plan_name || 'Investment'}</span>
                         </div>
-                    ` : ''}
+                        
+                        <div class="info-row">
+                            <span class="info-label">Submitted:</span>
+                            <span class="info-value">${formatDate(approval.created_at)}</span>
+                        </div>
 
-                    ${approval.payment_proof_url ? `
-                        <div style="margin-top: 1rem;">
-                            <div class="info-label" style="margin-bottom: 0.5rem;">Payment Proof:</div>
-                            <a href="${approval.payment_proof_url}" target="_blank" rel="noopener noreferrer">
-                                <img src="${approval.payment_proof_url}" alt="Payment proof" style="max-width: 220px; width: 100%; border: 1px solid #e5e7eb; border-radius: 8px; object-fit: cover; cursor: pointer;" />
-                            </a>
-                        </div>
-                    ` : ''}
-                    
-                    ${approval.status === 'pending' ? `
-                        <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
-                            <button class="btn-approve" onclick="approvePayment('${approval.id}')">
-                                ✅ Approve
-                            </button>
-                            <button class="btn-reject" onclick="rejectPayment('${approval.id}')">
-                                ❌ Reject
-                            </button>
-                        </div>
-                    ` : ''}
-                </div>
-            `).join('');
+                        ${approval.admin_note ? `
+                            <div class="info-row">
+                                <span class="info-label">Admin Note:</span>
+                                <span class="info-value">${approval.admin_note}</span>
+                            </div>
+                        ` : ''}
+
+                        ${proofUrl ? `
+                            <div style="margin-top: 1rem;">
+                                <div class="info-label" style="margin-bottom: 0.5rem;">Payment Proof:</div>
+                                <a href="${proofUrl}" target="_blank" rel="noopener noreferrer">
+                                    <img src="${proofUrl}" alt="Payment proof" style="max-width: 220px; width: 100%; border: 1px solid #e5e7eb; border-radius: 8px; object-fit: cover; cursor: pointer;" />
+                                </a>
+                            </div>
+                        ` : ''}
+                        
+                        ${approval.status === 'pending' ? `
+                            <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
+                                <button class="btn-approve" onclick="approvePayment('${approval.id}')">
+                                    ✅ Approve
+                                </button>
+                                <button class="btn-reject" onclick="rejectPayment('${approval.id}')">
+                                    ❌ Reject
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }));
+
+            container.innerHTML = approvalCards.join('');
         }
         
         function updateStats() {
             const pending = allApprovals.filter(a => a.status === 'pending');
             const approved = allApprovals.filter(a => a.status === 'approved' && 
                 new Date(a.created_at).toDateString() === new Date().toDateString());
-            const totalPending = pending.reduce((sum, a) => sum + Number(a.amount || 0), 0);
+            const totalPending = pending.reduce((sum, a) => sum + Number(a.investment_amount || 0), 0);
             
             document.getElementById('pendingCount').textContent = pending.length;
             document.getElementById('approvedCount').textContent = approved.length;
@@ -387,12 +380,32 @@
         
         window.approvePayment = async function(approvalId) {
             if (!confirm('✅ Approve this payment?')) return;
-            
+
+            const { data: { user } } = await supabase.auth.getUser();
+            const { data: currentInvestment, error: fetchError } = await supabase
+                .from('investments')
+                .select('*')
+                .eq('id', approvalId)
+                .single();
+
+            if (fetchError || !currentInvestment) {
+                showNotification('❌ Investment record could not be loaded.', 'error');
+                return;
+            }
+
+            if (currentInvestment.status !== 'pending') {
+                showNotification('❌ This investment is no longer pending.', 'error');
+                return;
+            }
+
             const { error } = await supabase
-                .from('payment_approvals')
-                .update({ 
+                .from('investments')
+                .update({
                     status: 'approved',
-                    approved_at: new Date().toISOString()
+                    approved_at: new Date().toISOString(),
+                    approved_by: user?.email || 'admin',
+                    updated_at: new Date().toISOString(),
+                    admin_note: currentInvestment.admin_note || 'Approved by administrator.'
                 })
                 .eq('id', approvalId);
             
@@ -401,17 +414,50 @@
                 console.error(error);
                 return;
             }
+
+            await supabase.from('admin_actions').insert({
+                investment_id: approvalId,
+                admin_user_id: user?.id || currentInvestment.user_id,
+                action: 'APPROVED',
+                previous_status: 'pending',
+                new_status: 'approved',
+                reason: 'Approved by administrator',
+            });
             
             showNotification('✅ Payment approved successfully', 'success');
             await loadApprovals();
         };
         
         window.rejectPayment = async function(approvalId) {
-            if (!confirm('❌ Reject this payment?')) return;
-            
+            const reason = window.prompt('Optional rejection reason:', 'PAYMENT PROOF COULD NOT BE VERIFIED');
+            if (reason === null) return;
+
+            const { data: { user } } = await supabase.auth.getUser();
+            const { data: currentInvestment, error: fetchError } = await supabase
+                .from('investments')
+                .select('*')
+                .eq('id', approvalId)
+                .single();
+
+            if (fetchError || !currentInvestment) {
+                showNotification('❌ Investment record could not be loaded.', 'error');
+                return;
+            }
+
+            if (currentInvestment.status !== 'pending') {
+                showNotification('❌ This investment is no longer pending.', 'error');
+                return;
+            }
+
             const { error } = await supabase
-                .from('payment_approvals')
-                .update({ status: 'rejected' })
+                .from('investments')
+                .update({
+                    status: 'rejected',
+                    rejected_at: new Date().toISOString(),
+                    rejected_by: user?.email || 'admin',
+                    admin_note: reason,
+                    updated_at: new Date().toISOString()
+                })
                 .eq('id', approvalId);
             
             if (error) {
@@ -419,6 +465,15 @@
                 console.error(error);
                 return;
             }
+
+            await supabase.from('admin_actions').insert({
+                investment_id: approvalId,
+                admin_user_id: user?.id || currentInvestment.user_id,
+                action: 'REJECTED',
+                previous_status: 'pending',
+                new_status: 'rejected',
+                reason: reason,
+            });
             
             showNotification('✅ Payment rejected', 'success');
             await loadApprovals();

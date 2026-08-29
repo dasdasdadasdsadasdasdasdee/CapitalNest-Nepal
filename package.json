@@ -1,0 +1,24 @@
+{
+  "name": "crypto-web3",
+  "version": "1.0.0",
+  "description": "A free crypto investment template with a user dashboard",
+  "main": "supabase-config.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RaviRepo99/CapitalNest-Nepal.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/RaviRepo99/CapitalNest-Nepal/issues"
+  },
+  "homepage": "https://github.com/RaviRepo99/CapitalNest-Nepal#readme",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.112.4",
+    "dotenv": "^17.4.2"
+  }
+}
