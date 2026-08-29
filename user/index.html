@@ -979,28 +979,47 @@
         try {
             let { data: profileData, error: profileError } = await supabase
                 .from('profiles')
-                .select('invitation_code, invited_count, referral_bonus')
+                .select('invitation_code, invited_count, referral_bonus, email')
                 .eq('id', user.id)
                 .maybeSingle();
 
-            let referralCode = profileData?.invitation_code || '';
+            if (profileError) {
+                console.warn('Profile lookup failed:', profileError);
+            }
+
+            let referralCode = (profileData && profileData.invitation_code) ? profileData.invitation_code : '';
 
             if (!referralCode) {
                 referralCode = generateReferralCode();
-
                 const { error: profileUpsertError } = await supabase
                     .from('profiles')
                     .upsert({
                         id: user.id,
-                        email: user.email,
+                        email: user.email || profileData?.email || `${user.id}@user.local`,
                         invitation_code: referralCode,
+                        full_name: user.user_metadata?.full_name || user.user_metadata?.name || null,
                         updated_at: new Date().toISOString()
                     }, { onConflict: 'id' });
 
                 if (profileUpsertError) {
                     console.warn('Referral code generation failed:', profileUpsertError);
                 } else {
-                    profileData = { invitation_code: referralCode, invited_count: 0, referral_bonus: 0 };
+                    profileData = {
+                        invitation_code: referralCode,
+                        invited_count: 0,
+                        referral_bonus: 0,
+                        email: user.email || `${user.id}@user.local`
+                    };
+                }
+            }
+
+            const shareUrl = referralCode
+                ? `${window.location.origin}/register.html?ref=${encodeURIComponent(referralCode)}`
+                : `${window.location.origin}/register.html`;
+            affiliateLinkInput.value = shareUrl;
+
+            const { data: historyData = [], error: historyError } = await supabase
+                .from('referral_history')
                 .select('id, bonus_amount')
                 .eq('inviter_id', user.id)
                 .eq('status', 'completed');
@@ -1019,10 +1038,14 @@
                 console.warn('Referral bonus load failed:', bonusError);
             }
 
-            const invitedTotal = historyData.length || Number(profileData?.invited_count || 0);
-            const totalBonus = historyData.reduce((sum, item) => sum + Number(item.bonus_amount || 0), 0) + bonusTransactions.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+            const invitedTotal = Math.max(
+                Number(profileData?.invited_count || 0),
+                Number(historyData.length || 0)
+            );
+            const totalBonus = historyData.reduce((sum, item) => sum + Number(item.bonus_amount || 0), 0)
+                + bonusTransactions.reduce((sum, item) => sum + Number(item.amount || 0), 0);
 
-            invitedCountEl.textContent = invitedTotal;
+            invitedCountEl.textContent = String(invitedTotal);
             invitedCountEl.setAttribute('title', `${invitedTotal} invited users`);
             affiliateBonusEl.textContent = formatCurrency(totalBonus);
         } catch (error) {
