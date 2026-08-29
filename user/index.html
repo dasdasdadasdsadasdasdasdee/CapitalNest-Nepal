@@ -977,7 +977,7 @@
         if (!affiliateLinkInput || !invitedCountEl || !affiliateBonusEl) return;
 
         try {
-            const { data: profileData, error: profileError } = await supabase
+            let { data: profileData, error: profileError } = await supabase
                 .from('profiles')
                 .select('invitation_code, invited_count, referral_bonus')
                 .eq('id', user.id)
@@ -987,21 +987,20 @@
 
             if (!referralCode) {
                 referralCode = generateReferralCode();
-                const { error: updateError } = await supabase
+
+                const { error: profileUpsertError } = await supabase
                     .from('profiles')
-                    .update({ invitation_code: referralCode, updated_at: new Date().toISOString() })
-                    .eq('id', user.id);
+                    .upsert({
+                        id: user.id,
+                        email: user.email,
+                        invitation_code: referralCode,
+                        updated_at: new Date().toISOString()
+                    }, { onConflict: 'id' });
 
-                if (updateError) {
-                    console.warn('Referral code update failed:', updateError);
-                }
-            }
-
-            const shareUrl = `${window.location.origin}/register.html?ref=${encodeURIComponent(referralCode)}`;
-            affiliateLinkInput.value = shareUrl;
-
-            const { data: historyData = [], error: historyError } = await supabase
-                .from('referral_history')
+                if (profileUpsertError) {
+                    console.warn('Referral code generation failed:', profileUpsertError);
+                } else {
+                    profileData = { invitation_code: referralCode, invited_count: 0, referral_bonus: 0 };
                 .select('id, bonus_amount')
                 .eq('inviter_id', user.id)
                 .eq('status', 'completed');
