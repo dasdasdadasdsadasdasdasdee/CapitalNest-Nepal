@@ -1109,7 +1109,7 @@
             });
 
         if (window.CAPITALNEST_FINANCE) {
-            await window.CAPITALNEST_FINANCE.refreshFinancialSummary();
+            Promise.resolve(window.CAPITALNEST_FINANCE.refreshFinancialSummary()).catch(() => {});
         }
 
         const transactionHistoryList = document.getElementById('transactionHistoryList');

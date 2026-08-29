@@ -283,12 +283,132 @@
     <script src="https://cdn.jsdelivr.net/npm/typed.js@2.0.9"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.4.1/jquery.easing.min.js"></script>
     <script src="../assets/js/script.min.js"></script>
-    <script>
+    <script src="../supabase-config.js"></script>
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+        function formatDate(value) {
+            if (!value) return 'N/A';
+            const date = new Date(value);
+            return Number.isNaN(date.getTime()) ? value : date.toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
+        }
+
+        function money(value) {
+            const amount = Number(value || 0);
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'NPR',
+                maximumFractionDigits: 0
+            }).format(amount);
+        }
+
+        function normalizeStatus(status) {
+            return (status || 'pending').toLowerCase();
+        }
+
+        async function loadMessages() {
+            const supabase = createClient(window.CAPITALNEST_SUPABASE.url, window.CAPITALNEST_SUPABASE.anonKey, {
+                auth: { persistSession: true, autoRefreshToken: true }
+            });
+
+            const { data: { user }, error: userError } = await supabase.auth.getUser();
+            if (userError || !user) {
+                window.location.href = '../login.html';
+                return;
+            }
+
+            const [{ data: transactions = [] }, { data: investments = [] }] = await Promise.all([
+                supabase.from('transactions').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+                supabase.from('user_investments').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
+            ]);
+
+            const messages = [];
+
+            transactions.forEach((transaction) => {
+                const note = transaction.note || transaction.type || 'Wallet activity';
+                const title = note.includes('welcome_bonus') || note.toLowerCase().includes('bonus')
+                    ? 'Referral bonus received'
+                    : note.toLowerCase().includes('withdrawal')
+                        ? 'Withdrawal request'
+                        : 'Wallet activity';
+
+                messages.push({
+                    title,
+                    detail: `${note} • ${money(transaction.amount)} • ${transaction.status || 'completed'}`,
+                    date: transaction.created_at,
+                    status: (transaction.status || 'completed').toLowerCase()
+                });
+            });
+
+            investments.forEach((investment) => {
+                const planName = investment.plan_name || investment.package_name || 'Investment package';
+                const amount = investment.amount || investment.investment_amount || 0;
+                const status = normalizeStatus(investment.status);
+                const createdAt = investment.created_at || new Date().toISOString();
+
+                messages.push({
+                    title: `${planName} investment`,
+                    detail: `You selected ${planName} for ${money(amount)}. Status: ${status}.`,
+                    date: createdAt,
+                    status
+                });
+
+                const days = Number(investment.duration_days || 0);
+                const created = new Date(createdAt);
+                const expiresAt = new Date(created.getTime() + (days || 30) * 24 * 60 * 60 * 1000);
+                if (status === 'approved' || status === 'active' || status === 'completed') {
+                    const mustNotify = new Date() > expiresAt;
+                    if (mustNotify) {
+                        messages.push({
+                            title: 'Investment period ended',
+                            detail: `Your time is over. Withdraw your money from ${planName}.`,
+                            date: new Date().toISOString(),
+                            status: 'warning'
+                        });
+                    }
+                }
+            });
+
+            messages.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            const tableBody = document.querySelector('#table2 tbody');
+            const badge = document.querySelector('.pill-counter');
+            if (badge) {
+                badge.textContent = String(messages.length || 1);
+            }
+
+            if (!messages.length) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td>01</td>
+                        <td><a href="#">No activity yet</a></td>
+                        <td><p class="text-truncate table-p">Your investment and account activity will appear here once you make a purchase or receive a bonus.</p></td>
+                        <td><p class="table-p">Just now</p></td>
+                        <td><span class="badge badge-pill badge-warning card-badge-g">Info</span></td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tableBody.innerHTML = messages.slice(0, 12).map((message, index) => {
+                const statusBadge = message.status === 'warning' ? 'badge-warning' : message.status === 'rejected' || message.status === 'failed' ? 'badge-danger' : 'badge-success';
+                const text = message.status === 'warning' ? 'Attention' : message.status === 'rejected' || message.status === 'failed' ? 'Issue' : 'Updated';
+                return `
+                    <tr>
+                        <td>${String(index + 1).padStart(2, '0')}</td>
+                        <td><a href="#">${message.title}</a></td>
+                        <td><p class="text-truncate table-p">${message.detail}</p></td>
+                        <td><p class="table-p">${formatDate(message.date)}</p></td>
+                        <td><span class="badge badge-pill ${statusBadge} card-badge-g">${text}</span></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
         document.addEventListener('DOMContentLoaded', function () {
             const currentPage = window.location.pathname.split('/').pop() || 'index.html';
             const navLinks = document.querySelectorAll('.navlink2');
 
-            // Set active link on page load
             navLinks.forEach(function (link) {
                 const href = link.getAttribute('href');
                 if (!href || href.startsWith('#')) return;
@@ -301,17 +421,16 @@
                 }
             });
 
-            // Add click handler with immediate feedback
             navLinks.forEach(function (link) {
-                link.addEventListener('click', function (e) {
-                    // Remove active from all links immediately
+                link.addEventListener('click', function () {
                     navLinks.forEach(function (item) {
                         item.classList.remove('active');
                     });
-                    // Add active to clicked link immediately
                     link.classList.add('active');
                 });
             });
+
+            loadMessages();
         });
     </script>
 </body>
