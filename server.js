@@ -6,11 +6,11 @@ const app = express();
 
 const PORT = process.env.PORT || 3000;
 
-// Serve static files from root directory
+// Serve static files from the project root.
 app.use(express.static(path.join(__dirname)));
 
-// Fallback to index.html for SPA routing
-app.get('*', (req, res) => {
+// Fallback to the login page for frontend routes.
+app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'login.html'));
 });
 
