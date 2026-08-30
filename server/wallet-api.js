@@ -147,11 +147,29 @@ async function getWalletSummary(userId) {
     .select('*')
     .eq('user_id', userId);
 
-  const activeInvested = investments
-    .filter((item) => String(item.status || '').toUpperCase() === 'ACTIVE')
-    .reduce((sum, item) => sum + Number(item.invested_amount || item.amount || 0), 0);
+  const dedupedInvestmentAmounts = new Map();
+  const validInvestments = investments.filter((item) => {
+    const status = String(item.status || '').toUpperCase();
+    if (['PENDING', 'REJECTED', 'FAILED'].includes(status)) return false;
+    const amount = Number(item.purchase_amount ?? item.invested_amount ?? item.amount ?? 0);
+    const planName = String(item.plan_name || item.investment_plan || item.name || 'Investment').trim() || 'Investment';
+    const normalizedPlan = planName.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, ' ').trim();
+    const durationDays = Number(item.duration_days ?? item.duration ?? 0);
+    const referenceId = String(item.reference_id || item.referenceId || item.deposit_id || item.id || '').trim();
+    const createdAtRaw = item.created_at || item.approved_at || item.started_at || item.date || '';
+    const createdAt = createdAtRaw ? new Date(createdAtRaw).getTime() : 0;
+    const createdAtBucket = Number.isFinite(createdAt) ? Math.floor(createdAt / (60 * 1000)) : 0;
+    const key = referenceId
+      ? `${item.user_id || userId}|reference:${referenceId.toLowerCase()}`
+      : `${item.user_id || userId}|${normalizedPlan}|${amount}|${durationDays}|${status}|${createdAtBucket}`;
+    if (dedupedInvestmentAmounts.has(key)) return false;
+    dedupedInvestmentAmounts.set(key, true);
+    return true;
+  });
 
-  const maturedValue = investments
+  const activeInvested = validInvestments.reduce((sum, item) => sum + Number(item.purchase_amount ?? item.invested_amount ?? item.amount ?? 0), 0);
+
+  const maturedValue = validInvestments
     .filter((item) => {
       const status = String(item.status || '').toUpperCase();
       if (status === 'MATURING' || status === 'MATURED') return true;
@@ -161,7 +179,7 @@ async function getWalletSummary(userId) {
       if (Number.isNaN(createdAt.getTime())) return false;
       return Date.now() - createdAt.getTime() >= durationMs;
     })
-    .reduce((sum, item) => sum + Number(item.invested_amount || item.amount || 0), 0);
+    .reduce((sum, item) => sum + Number(item.purchase_amount ?? item.invested_amount ?? item.amount ?? 0), 0);
 
   const maturedReturnTransactions = transactions
     .filter((txn) => ['INVESTMENT_RETURN', 'MATURITY_PAYOUT', 'MATURED_INVESTMENT'].includes(String(txn.type || '').toUpperCase()))
@@ -172,7 +190,7 @@ async function getWalletSummary(userId) {
   return {
     ...summary,
     available: availableBalance,
-    invested: Number((summary.invested + activeInvested).toFixed(2)),
+    invested: Number(activeInvested.toFixed(2)),
   };
 }
 

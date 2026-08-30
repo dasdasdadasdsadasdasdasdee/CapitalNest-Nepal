@@ -1259,14 +1259,109 @@
         return date.toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
     }
 
+    function normalizePlanNameFromReference(referenceId) {
+        const raw = String(referenceId || '').trim();
+        if (!raw) return 'Investment';
+        const parsed = raw.split('-')[0]?.trim();
+        return parsed || 'Investment';
+    }
+
+    function buildApprovedDepositInvestments(deposits = []) {
+        return deposits
+            .filter((deposit) => String(deposit.status || '').toUpperCase() === 'APPROVED')
+            .map((deposit) => ({
+                id: deposit.id,
+                user_id: deposit.user_id,
+                reference_id: deposit.id,
+                plan_name: normalizePlanNameFromReference(deposit.reference_id || deposit.plan_name),
+                amount: Number(deposit.amount || 0),
+                purchase_amount: Number(deposit.amount || 0),
+                duration_days: Number(deposit.duration_days || 30),
+                status: 'active',
+                created_at: deposit.approved_at || deposit.created_at,
+                source: 'deposit'
+            }));
+    }
+
+    function buildApprovedTransactionInvestments(transactions = [], approvedDeposits = []) {
+        const approvedDepositByReference = new Map(
+            approvedDeposits.map((deposit) => [String(deposit.id || '').toLowerCase(), deposit])
+        );
+        const seen = new Set();
+
+        return transactions
+            .filter((transaction) => String(transaction.type || '').toLowerCase() === 'investment')
+            .map((transaction) => {
+                const note = String(transaction.note || '');
+                const match = note.match(/Investment approved:\s*([a-f0-9-]+)/i)?.[1];
+                const referenceId = match || transaction.reference_id || transaction.referenceId || transaction.id || '';
+                const depositKey = String(referenceId || '').toLowerCase();
+                if (!depositKey || seen.has(depositKey)) {
+                    return null;
+                }
+                seen.add(depositKey);
+
+                const matchedDeposit = approvedDepositByReference.get(depositKey) || null;
+                const planName = matchedDeposit ? normalizePlanNameFromReference(matchedDeposit.reference_id || matchedDeposit.plan_name) : 'Investment';
+
+                return {
+                    id: transaction.id,
+                    user_id: transaction.user_id,
+                    reference_id: referenceId,
+                    plan_name: planName,
+                    amount: Number(transaction.amount || 0),
+                    purchase_amount: Number(transaction.amount || 0),
+                    duration_days: matchedDeposit ? Number(matchedDeposit.duration_days || 30) : 30,
+                    status: 'active',
+                    created_at: transaction.created_at,
+                    source: 'transaction'
+                };
+            })
+            .filter(Boolean);
+    }
+
+    function getInvestmentIdentity(item) {
+        if (!item) return 'empty-investment';
+        const referenceId = String(item.reference_id || item.referenceId || item.deposit_id || item.id || '').trim();
+        const createdAtRaw = item.created_at || item.approved_at || item.started_at || item.date || '';
+        const createdAt = createdAtRaw ? new Date(createdAtRaw).getTime() : 0;
+        const createdAtBucket = Number.isFinite(createdAt) ? Math.floor(createdAt / (60 * 1000)) : 0;
+        const amount = Number(item.purchase_amount ?? item.amount ?? item.investment_amount ?? item.total_amount ?? item.invested_amount ?? 0);
+        const planName = String(item.plan_name || item.investment_plan || item.name || 'Investment').trim() || 'Investment';
+        const normalizedPlan = planName.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, ' ').trim() || 'investment';
+        const durationDays = Number(item.duration_days ?? item.duration ?? 0);
+        const status = String(item.status || 'active').toLowerCase();
+
+        if (referenceId) {
+            return `${item.user_id || ''}|reference:${referenceId.toLowerCase()}`;
+        }
+
+        return `${item.user_id || ''}|${normalizedPlan}|${Number.isFinite(amount) ? amount : 0}|${Number.isFinite(durationDays) ? durationDays : 0}|${status}|${createdAtBucket}`;
+    }
+
+    function dedupeInvestments(items = []) {
+        const seen = new Map();
+        return items.filter((item) => {
+            if (!item) return false;
+            const key = getInvestmentIdentity(item);
+            if (seen.has(key)) return false;
+            seen.set(key, true);
+            return true;
+        });
+    }
+
     function generateReferralCode() {
         const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
         const randomValues = new Uint32Array(11);
+
         if (window.crypto?.getRandomValues) {
             window.crypto.getRandomValues(randomValues);
         } else {
-            randomValues.fill(Math.floor(Math.random() * 0xffffffff));
+            randomValues.forEach((_, index) => {
+                randomValues[index] = Math.floor(Math.random() * 0xffffffff);
+            });
         }
+
         const randomPart = Array.from(randomValues, (value) => alphabet[value % alphabet.length]).join('');
         return `CN${randomPart}`;
     }
@@ -1509,7 +1604,7 @@
                 await window.CAPITALNEST_FINANCE.refreshFinancialSummary();
             }
 
-            const [transactionsResult, investmentsResult] = await Promise.all([
+            const [transactionsResult, investmentsResult, approvedDepositsResult] = await Promise.all([
                 supabase
                     .from('transactions')
                     .select('*')
@@ -1520,23 +1615,35 @@
                     .from('user_investments')
                     .select('*')
                     .eq('user_id', user.id)
-                    .order('created_at', { ascending: false })
+                    .order('created_at', { ascending: false }),
+                supabase
+                    .from('deposits')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .in('status', ['APPROVED', 'approved'])
+                    .order('approved_at', { ascending: false })
             ]);
 
             const transactions = Array.isArray(transactionsResult.data) ? transactionsResult.data : [];
             const investmentsFromTable = Array.isArray(investmentsResult.data) ? investmentsResult.data : [];
+            const approvedDepositInvestments = buildApprovedDepositInvestments(Array.isArray(approvedDepositsResult.data) ? approvedDepositsResult.data : []);
             const investmentTransactions = transactions.filter((transaction) => (transaction.type || '').toLowerCase() === 'investment');
-            const investments = investmentsFromTable.length
-                ? investmentsFromTable
-                : investmentTransactions.map((transaction) => ({
-                    id: transaction.id,
-                    user_id: transaction.user_id,
-                    plan_name: transaction.note ? transaction.note.split(':')[1]?.trim() || 'Investment' : 'Investment',
-                    amount: Number(transaction.amount || 0),
-                    duration_days: 0,
-                    status: transaction.status || 'active',
-                    created_at: transaction.created_at
-                }));
+            const approvedTransactionInvestments = buildApprovedTransactionInvestments(investmentTransactions, approvedDepositInvestments);
+            const dedupedInvestments = dedupeInvestments([...investmentsFromTable, ...approvedDepositInvestments, ...approvedTransactionInvestments]);
+            const investments = dedupedInvestments.length
+                ? dedupedInvestments
+                : approvedTransactionInvestments.length
+                    ? approvedTransactionInvestments
+                    : investmentTransactions.map((transaction) => ({
+                        id: transaction.id,
+                        user_id: transaction.user_id,
+                        plan_name: transaction.note ? transaction.note.split(':')[1]?.trim() || 'Investment' : 'Investment',
+                        amount: Number(transaction.amount || 0),
+                        purchase_amount: Number(transaction.amount || 0),
+                        duration_days: 0,
+                        status: transaction.status || 'active',
+                        created_at: transaction.created_at
+                    }));
 
             let totalDeposits = 0;
             let totalWithdrawals = 0;
@@ -1547,14 +1654,11 @@
                 const type = (transaction.type || '').toLowerCase();
                 if (['deposit', 'welcome_bonus', 'bonus', 'refund'].includes(type)) totalDeposits += amount;
                 if (type === 'withdrawal') totalWithdrawals += amount;
-                if (type === 'investment') totalInvestments += amount;
             });
 
-            investments
+            totalInvestments = investments
                 .filter((investment) => !['pending', 'rejected', 'failed'].includes((investment.status || '').toLowerCase()))
-                .forEach((investment) => {
-                    totalInvestments += Number(investment.amount || 0);
-                });
+                .reduce((sum, investment) => sum + Number(investment.purchase_amount ?? investment.amount ?? 0), 0);
 
             if (window.CAPITALNEST_FINANCE) {
                 Promise.resolve(window.CAPITALNEST_FINANCE.refreshFinancialSummary()).catch(() => {});
@@ -1568,7 +1672,7 @@
                     transactionHistoryList.innerHTML = transactions.slice(0, 5).map((transaction) => {
                         const amount = Number(transaction.amount || 0);
                         const type = (transaction.type || 'transaction').toLowerCase();
-                        const isIncoming = ['deposit', 'welcome_bonus', 'bonus', 'refund'].includes(type);
+                        const isIncoming = ['deposit', 'welcome_bonus', 'bonus', 'refund', 'investment'].includes(type);
                         const label = transaction.note || transaction.type || 'Transaction';
                         const amountClass = isIncoming ? 'deposit' : 'withdrawal';
                         const icon = isIncoming

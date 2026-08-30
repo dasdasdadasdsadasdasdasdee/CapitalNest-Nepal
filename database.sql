@@ -29,11 +29,13 @@ create table if not exists public.user_investments (
   amount numeric(12,2) not null default 0,
   duration_days integer not null default 0,
   status text not null default 'active',
+  reference_id text,
   approval_id uuid references public.payment_approvals(id),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
+alter table public.user_investments add column if not exists reference_id text;
 alter table public.user_investments add column if not exists approval_id uuid references public.payment_approvals(id);
 
 -- 3) Wallet / transaction history
@@ -151,7 +153,7 @@ declare
   v_code text;
 begin
   loop
-    v_code := upper('CN' || substr(replace(gen_random_uuid()::text, '-', ''), 1, 12));
+    v_code := 'CN' || upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 11));
     exit when not exists (
       select 1 from public.profiles where lower(invitation_code) = lower(v_code)
     );
@@ -183,6 +185,12 @@ begin
     return;
   end if;
 
+  if exists (
+    select 1 from public.profiles where id = p_user_id and referred_by is not null
+  ) then
+    return;
+  end if;
+
   select id
     into v_inviter_id
   from public.profiles
@@ -196,7 +204,7 @@ begin
   update public.profiles
   set referred_by = v_inviter_id,
       updated_at = now()
-  where id = p_user_id;
+  where id = p_user_id and referred_by is null;
 
   insert into public.referral_history (
     inviter_id,
@@ -219,45 +227,133 @@ begin
     return;
   end if;
 
-  insert into public.transactions (
-    user_id,
-    type,
-    amount,
-    payment_method,
-    status,
-    note,
-    referral_history_id
-  )
-  values (
-    v_inviter_id,
-    'welcome_bonus',
-    v_bonus_amount,
-    'referral',
-    'completed',
-    'Welcome bonus for successful referral',
-    v_history_id
-  )
-  returning id into v_inviter_bonus_tx_id;
+  if not exists (
+    select 1
+    from public.transactions
+    where user_id = v_inviter_id
+      and referral_history_id = v_history_id
+      and type = 'welcome_bonus'
+  ) then
+    insert into public.transactions (
+      user_id,
+      type,
+      amount,
+      payment_method,
+      status,
+      note,
+      referral_history_id
+    )
+    values (
+      v_inviter_id,
+      'welcome_bonus',
+      v_bonus_amount,
+      'referral',
+      'completed',
+      'Welcome bonus for successful referral',
+      v_history_id
+    )
+    returning id into v_inviter_bonus_tx_id;
 
-  insert into public.transactions (
-    user_id,
-    type,
-    amount,
-    payment_method,
-    status,
-    note,
-    referral_history_id
-  )
-  values (
-    p_user_id,
-    'welcome_bonus',
-    v_bonus_amount,
-    'referral',
-    'completed',
-    'Welcome bonus for joining through referral link',
-    v_history_id
-  )
-  returning id into v_invitee_bonus_tx_id;
+    insert into public.wallet_transactions (
+      user_id,
+      type,
+      amount,
+      status,
+      payment_method,
+      note,
+      reference_id,
+      created_at
+    )
+    values (
+      v_inviter_id,
+      'WELCOME_BONUS',
+      v_bonus_amount,
+      'completed',
+      'referral',
+      'Welcome bonus for successful referral',
+      v_history_id::text,
+      now()
+    );
+  end if;
+
+  if not exists (
+    select 1
+    from public.transactions
+    where user_id = p_user_id
+      and referral_history_id = v_history_id
+      and type = 'welcome_bonus'
+  ) then
+    insert into public.transactions (
+      user_id,
+      type,
+      amount,
+      payment_method,
+      status,
+      note,
+      referral_history_id
+    )
+    values (
+      p_user_id,
+      'welcome_bonus',
+      v_bonus_amount,
+      'referral',
+      'completed',
+      'Welcome bonus for joining through referral link',
+      v_history_id
+    )
+    returning id into v_invitee_bonus_tx_id;
+
+    insert into public.wallet_transactions (
+      user_id,
+      type,
+      amount,
+      status,
+      payment_method,
+      note,
+      reference_id,
+      created_at
+    )
+    values (
+      p_user_id,
+      'WELCOME_BONUS',
+      v_bonus_amount,
+      'completed',
+      'referral',
+      'Welcome bonus for joining through referral link',
+      v_history_id::text,
+      now()
+    );
+  end if;
+
+  update public.referral_history
+  set bonus_amount = v_bonus_amount,
+      bonus_transaction_id = coalesce(bonus_transaction_id, v_inviter_bonus_tx_id)
+  where id = v_history_id;
+
+  update public.profiles
+  set invited_count = (
+      select count(*)
+      from public.referral_history
+      where inviter_id = v_inviter_id and status = 'completed'
+    ),
+      referral_bonus = (
+      select coalesce(sum(bonus_amount), 0)
+      from public.referral_history
+      where inviter_id = v_inviter_id and status = 'completed'
+    ),
+      updated_at = now()
+  where id = v_inviter_id;
+
+  update public.profiles
+  set referral_bonus = (
+      select coalesce(sum(amount), 0)
+      from public.transactions
+      where user_id = p_user_id and type = 'welcome_bonus'
+    ),
+      updated_at = now()
+  where id = p_user_id;
+end;
+$$;
 
   update public.referral_history
   set bonus_amount = v_bonus_amount,

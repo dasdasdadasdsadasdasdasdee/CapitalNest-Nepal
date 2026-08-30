@@ -484,12 +484,15 @@
         }
 
         function normalizeInvitationCode(code) {
-            return (code || '').trim().toUpperCase();
+            const cleaned = String(code || '').trim().toUpperCase();
+            return cleaned.replace(/\s+/g, '');
         }
 
         async function validateInvitationCode(inviteCode) {
             const cleanedCode = normalizeInvitationCode(inviteCode);
             if (!cleanedCode) return true;
+            const isSupportedFormat = /^\d{7}$/.test(cleanedCode) || /^CN[A-Z0-9]{11}$/i.test(cleanedCode) || /^CN[A-Z0-9]{7,13}$/i.test(cleanedCode);
+            if (!isSupportedFormat) return false;
 
             try {
                 const { data, error } = await supabase.rpc('validate_invitation_code', {
@@ -510,7 +513,8 @@
 
         async function applyReferralIfPresent(userId, inviteCode) {
             const cleanedCode = normalizeInvitationCode(inviteCode);
-            if (!userId || !cleanedCode) return;
+            const isSupportedFormat = /^\d{7}$/.test(cleanedCode) || /^CN[A-Z0-9]{11}$/i.test(cleanedCode) || /^CN[A-Z0-9]{7,13}$/i.test(cleanedCode);
+            if (!userId || !cleanedCode || !isSupportedFormat) return;
 
             try {
                 const { error } = await supabase.rpc('process_referral', {

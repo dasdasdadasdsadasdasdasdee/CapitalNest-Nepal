@@ -41,8 +41,8 @@ begin
       updated_at = now()
   where id = p_deposit_id;
 
-  insert into public.user_investments (user_id, plan_name, amount, duration_days, status, created_at, updated_at)
-  values (v_deposit.user_id, v_plan_name, v_deposit.amount, v_duration_days, 'active', now(), now());
+  insert into public.user_investments (user_id, plan_name, amount, duration_days, status, reference_id, created_at, updated_at)
+  values (v_deposit.user_id, v_plan_name, v_deposit.amount, v_duration_days, 'active', v_deposit.id::text, now(), now());
 
   insert into public.wallet_transactions (
     user_id, type, amount, status, payment_method, note, reference_id, created_at
@@ -70,7 +70,7 @@ end;
 $$;
 
 -- Backfill packages approved before the activation function was installed.
-insert into public.user_investments (user_id, plan_name, amount, duration_days, status, created_at, updated_at)
+insert into public.user_investments (user_id, plan_name, amount, duration_days, status, reference_id, created_at, updated_at)
 select
   d.user_id,
   coalesce(nullif(split_part(d.reference_id, '-', 1), ''), 'Investment'),
@@ -86,6 +86,7 @@ select
     else 30
   end,
   'active',
+  d.id::text,
   coalesce(d.approved_at, d.created_at),
   coalesce(d.approved_at, d.created_at)
 from public.deposits d
@@ -93,9 +94,7 @@ where d.status = 'APPROVED'
   and not exists (
     select 1 from public.user_investments ui
     where ui.user_id = d.user_id
-      and ui.amount = d.amount
-      and ui.created_at between coalesce(d.approved_at, d.created_at) - interval '1 minute'
-                            and coalesce(d.approved_at, d.created_at) + interval '1 minute'
+      and ui.reference_id = d.id::text
   );
 
 insert into public.transactions (user_id, type, amount, payment_method, status, note, created_at)

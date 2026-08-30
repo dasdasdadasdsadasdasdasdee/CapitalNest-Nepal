@@ -33,9 +33,14 @@ function calculateWalletBalance(transactions = []) {
         available += amount;
         totalEarned += amount;
         break;
+      case 'WELCOME_BONUS':
+      case 'BONUS':
+      case 'SIGNUP_BONUS':
       case 'REFERRAL_REWARD':
       case 'REFERRAL_REWARD_REFERRER':
       case 'REFERRAL_REWARD_REFERRED_USER':
+      case 'AFFILIATE_BONUS':
+      case 'PROMO_BONUS':
         available += amount;
         totalEarned += amount;
         break;
@@ -172,10 +177,76 @@ function canTransitionWithdrawalStatus(currentStatus, nextStatus) {
   return allowed.includes(next);
 }
 
+function normalizePlanName(planName = '') {
+  return String(planName || 'Investment')
+    .replace(/\s*:\s*/g, ' ')
+    .replace(/[^a-zA-Z0-9\s-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase() || 'investment';
+}
+
+function buildInvestmentRecordKey(record = {}) {
+  const userId = String(record.user_id || '').trim();
+  const referenceId = String(record.reference_id || record.referenceId || record.deposit_id || record.id || '').trim();
+  const amount = Number(record.purchase_amount ?? record.amount ?? record.investment_amount ?? record.total_amount ?? record.invested_amount ?? 0);
+  const durationDays = Number(record.duration_days ?? record.duration ?? 0);
+  const planName = normalizePlanName(record.plan_name || record.investment_plan || record.name || record.note || 'Investment');
+  const status = String(record.status || 'active').toLowerCase();
+  const createdAtRaw = record.created_at || record.approved_at || record.started_at || record.date || '';
+  const createdAt = createdAtRaw ? new Date(createdAtRaw) : null;
+  const createdAtBucket = Number.isFinite(createdAt?.getTime()) ? Math.floor(createdAt.getTime() / (60 * 1000)) : 0;
+
+  if (referenceId) {
+    return `${userId}|reference:${referenceId.toLowerCase()}`;
+  }
+
+  return `${userId}|${planName}|${Number.isFinite(amount) ? amount : 0}|${Number.isFinite(durationDays) ? durationDays : 0}|${status}|${createdAtBucket}`;
+}
+
+function dedupeInvestmentRecords(items = []) {
+  const seen = new Set();
+  return (Array.isArray(items) ? items : []).filter((item) => {
+    if (!item) return false;
+    const key = buildInvestmentRecordKey(item);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function calculateInvestmentReturn(investedAmount, percentage) {
   const amount = Number(investedAmount || 0);
   const rate = Number(percentage || 0);
   return Number(((amount * rate) / 100).toFixed(2));
+}
+
+function normalizeReferralCode(code = '') {
+  const normalized = String(code || '').trim().toUpperCase();
+  return normalized.replace(/\s+/g, '');
+}
+
+function isValidReferralCode(code = '') {
+  const normalized = normalizeReferralCode(code);
+  if (!normalized) return false;
+
+  return /^\d{7}$/.test(normalized) || /^CN[A-Z0-9]{11}$/i.test(normalized) || /^CN[A-Z0-9]{7,13}$/i.test(normalized);
+}
+
+function generateReferralCode() {
+  const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const randomValues = new Uint32Array(11);
+
+  if (typeof globalThis.crypto !== 'undefined' && typeof globalThis.crypto.getRandomValues === 'function') {
+    globalThis.crypto.getRandomValues(randomValues);
+  } else {
+    randomValues.forEach((_, index) => {
+      randomValues[index] = Math.floor(Math.random() * 0xffffffff);
+    });
+  }
+
+  const randomPart = Array.from(randomValues, (value) => alphabet[value % alphabet.length]).join('');
+  return `CN${randomPart}`;
 }
 
 function calculateReferralRewards(referrerReward = 50, referredReward = 50) {
@@ -196,5 +267,11 @@ module.exports = {
   validateWalletNumber,
   canTransitionWithdrawalStatus,
   calculateInvestmentReturn,
+  normalizePlanName,
+  buildInvestmentRecordKey,
+  dedupeInvestmentRecords,
+  normalizeReferralCode,
+  isValidReferralCode,
+  generateReferralCode,
   calculateReferralRewards,
 };
