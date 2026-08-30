@@ -236,8 +236,19 @@
 
         /* Dashboard Cards */
         .card-bg {
-            background: transparent;
-            border: none;
+            background: rgba(255, 255, 255, 0.96);
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            border-radius: 14px;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+            padding: 18px 18px 14px;
+        }
+
+        .card-bg2 {
+            background: rgba(255, 255, 255, 0.96);
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            border-radius: 14px;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+            padding: 18px;
         }
 
         .card1 {
@@ -433,6 +444,31 @@
             border-radius: 2px;
         }
 
+        .affiliate-link-row {
+            display: flex;
+            align-items: stretch;
+            width: 100%;
+        }
+
+        .affiliate-link-input {
+            flex: 1 1 auto;
+            min-width: 0;
+            font-size: 16px;
+            white-space: normal;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+            text-overflow: clip;
+        }
+
+        .affiliate-link-append {
+            flex-shrink: 0;
+        }
+
+        .affiliate-link-button {
+            min-width: 120px;
+            height: 100%;
+        }
+
         /* Transaction History Styling */
         .table {
             border-collapse: separate;
@@ -539,6 +575,27 @@
 
             .dashboard-h {
                 font-size: 14px;
+            }
+
+            .affiliate-link-row {
+                flex-direction: column;
+            }
+
+            .affiliate-link-input {
+                width: 100%;
+                min-height: 52px;
+                border-radius: 0.375rem !important;
+            }
+
+            .affiliate-link-append {
+                width: 100%;
+                margin-top: 10px;
+            }
+
+            .affiliate-link-button {
+                width: 100%;
+                min-width: 0;
+                border-radius: 0.375rem !important;
             }
         }
     </style>
@@ -908,10 +965,10 @@
                     <form>
                         <div class="form-group">
                             <label>Affiliate Link</label>
-                            <div class="input-group">
-                                <input id="affiliateLinkInput" class="form-control" type="text" readonly value="">
-                                <div class="input-group-append">
-                                    <button id="copyReferralLinkBtn" class="btn btn-primary" type="button">Copy</button>
+                            <div class="input-group affiliate-link-row">
+                                <input id="affiliateLinkInput" class="form-control affiliate-link-input" type="text" readonly value="">
+                                <div class="input-group-append affiliate-link-append">
+                                    <button id="copyReferralLinkBtn" class="btn btn-primary affiliate-link-button" type="button">Copy</button>
                                 </div>
                             </div>
                         </div>

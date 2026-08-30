@@ -260,7 +260,9 @@
             height: 100%;
             opacity: 0;
             cursor: pointer;
-            z-index: 2;
+            z-index: 3;
+            pointer-events: auto;
+            -webkit-appearance: none;
         }
 
         .file-upload-label {
@@ -268,7 +270,9 @@
             z-index: 1;
             cursor: pointer;
             display: block;
-            pointer-events: none;
+            pointer-events: auto;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .file-upload-icon {
@@ -583,11 +587,11 @@
             <div class="step-content" id="step3">
                 <div class="form-group">
                     <label>Upload Payment Screenshot *</label>
-                    <div class="file-upload-box" onclick="document.getElementById('screenshot').click();">
+                    <div class="file-upload-box" id="screenshotUploadBox">
                         <input type="file" id="screenshot" name="screenshot" accept="image/jpeg,image/jpg,image/png,image/webp,image/avif" required>
                         <label for="screenshot" class="file-upload-label">
                             <div class="file-upload-icon"><i class="la la-cloud-upload"></i></div>
-                            <div class="file-upload-text">Click to upload screenshot</div>
+                            <div class="file-upload-text">Tap to upload screenshot</div>
                             <small style="color: #999;">or drag and drop</small>
                         </label>
                         <div class="file-name" id="fileName"></div>
@@ -820,6 +824,18 @@
 
         // File upload
         const screenshotInput = document.getElementById('screenshot');
+        const fileBox = document.querySelector('.file-upload-box');
+
+        screenshotInput.addEventListener('click', function(event) {
+            event.stopPropagation();
+        });
+
+        fileBox.addEventListener('click', function (event) {
+            if (event.target === screenshotInput) {
+                return;
+            }
+            screenshotInput.click();
+        });
 
         screenshotInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
@@ -840,14 +856,7 @@
             document.getElementById('fileName').textContent = message;
         });
 
-        fileBox.addEventListener('click', function (event) {
-            if (event.target === fileBox || event.target.closest('.file-upload-label') || event.target.closest('.file-upload-icon') || event.target.closest('.file-upload-text')) {
-                screenshotInput.click();
-            }
-        });
-
         // Drag and drop
-        const fileBox = document.querySelector('.file-upload-box');
         fileBox.addEventListener('dragover', (e) => {
             e.preventDefault();
             fileBox.style.borderColor = '#1800b0';
