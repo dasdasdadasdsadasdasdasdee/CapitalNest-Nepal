@@ -60,9 +60,10 @@ app.use((error, req, res, _next) => {
   res.status(error?.statusCode || 500).send('Internal server error.');
 });
 
+let telegramBot = null;
 if (process.env.TELEGRAM_BOT_TOKEN) {
   try {
-    require('./server/telegram-bot');
+    telegramBot = require('./server/telegram-bot');
     console.log('Telegram bot startup hook enabled.');
   } catch (error) {
     console.error('Telegram bot failed to start:', error.message);
@@ -71,6 +72,18 @@ if (process.env.TELEGRAM_BOT_TOKEN) {
   console.warn('Telegram bot is disabled because TELEGRAM_BOT_TOKEN is not set in Railway environment variables.');
 }
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`CapitalNest Nepal server running on port ${PORT}`);
 });
+
+function shutdown(signal) {
+  console.log(`${signal} received. Shutting down gracefully.`);
+  telegramBot?.stopTelegramBot?.();
+  server.close(() => {
+    console.log('HTTP server closed.');
+    process.exit(0);
+  });
+}
+
+process.once('SIGTERM', () => shutdown('SIGTERM'));
+process.once('SIGINT', () => shutdown('SIGINT'));

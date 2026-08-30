@@ -8,6 +8,8 @@ const configuredSupabaseUrl = process.env.SUPABASE_URL?.replace(/\/$/, '');
 const supabaseUrl = projectSupabaseUrl;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const notifiedInvestmentIds = new Set();
+let shuttingDown = false;
+let activePollController = null;
 
 if (!botToken) {
   console.warn('TELEGRAM_BOT_TOKEN is missing. Telegram bot will stay disabled.');
@@ -242,14 +244,17 @@ async function pollTelegram() {
 
   console.log('Telegram bot started. Polling for updates...');
 
-  while (true) {
+  while (!shuttingDown) {
     try {
       await notifyPendingInvestments();
 
+      activePollController = new AbortController();
       const updates = await api('/getUpdates', {
         method: 'POST',
         body: JSON.stringify({ offset, timeout: 30 }),
+        signal: activePollController.signal,
       });
+      activePollController = null;
 
       for (const update of updates || []) {
         offset = Math.max(offset, Number(update.update_id) + 1);
@@ -259,6 +264,10 @@ async function pollTelegram() {
         }
       }
     } catch (error) {
+      activePollController = null;
+      if (shuttingDown || error?.name === 'AbortError') {
+        break;
+      }
       console.error('Polling error:', error.message);
       if (/invalid api key/i.test(error.message)) {
         console.warn('Telegram bot credentials are invalid. Bot remains disabled until a valid TELEGRAM_BOT_TOKEN and SUPABASE_SERVICE_ROLE_KEY are configured in Railway.');
@@ -270,10 +279,20 @@ async function pollTelegram() {
       }
     }
   }
+
+  console.log('Telegram bot polling stopped.');
+}
+
+function stopTelegramBot() {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  activePollController?.abort();
+  console.log('Telegram bot shutdown requested.');
 }
 
 (async () => {
   try {
+    if (shuttingDown) return;
     const me = await api('/getMe', { method: 'POST' });
     console.log(`Telegram bot active: @${me.username || 'unknown'}`);
     await pollTelegram();
@@ -282,3 +301,5 @@ async function pollTelegram() {
     console.warn('Telegram bot startup failed, but the web app will continue to run on Railway.');
   }
 })();
+
+module.exports = { stopTelegramBot };
