@@ -122,6 +122,7 @@ ON public.payment_approvals FOR SELECT
 USING (auth.uid() = user_id);
 
 DROP POLICY IF EXISTS "Admins can view all payment approvals" ON public.payment_approvals;
+DROP POLICY IF EXISTS "Authenticated users can view all payment approvals" ON public.payment_approvals;
 CREATE POLICY "Authenticated users can view all payment approvals"
 ON public.payment_approvals FOR SELECT
 USING (
@@ -129,6 +130,7 @@ USING (
 );
 
 DROP POLICY IF EXISTS "Admins can update payment approvals" ON public.payment_approvals;
+DROP POLICY IF EXISTS "Authenticated users can update payment approvals" ON public.payment_approvals;
 CREATE POLICY "Authenticated users can update payment approvals"
 ON public.payment_approvals FOR UPDATE
 USING (

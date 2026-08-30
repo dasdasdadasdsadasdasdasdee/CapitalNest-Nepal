@@ -279,7 +279,6 @@ $$;
 
 grant execute on function public.process_referral(uuid, text) to anon, authenticated;
 
-drop function if exists public.handle_new_user();
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -339,39 +338,48 @@ alter table public.user_investments enable row level security;
 alter table public.transactions enable row level security;
 alter table public.referral_history enable row level security;
 
-create policy if not exists "Users can view their own profile"
+drop policy if exists "Users can view their own profile" on public.profiles;
+create policy "Users can view their own profile"
   on public.profiles for select
   using (auth.uid() = id);
 
-create policy if not exists "Users can update their own profile"
+drop policy if exists "Users can update their own profile" on public.profiles;
+create policy "Users can update their own profile"
   on public.profiles for update
   using (auth.uid() = id);
 
-create policy if not exists "Users can insert their own profile"
+drop policy if exists "Users can insert their own profile" on public.profiles;
+create policy "Users can insert their own profile"
   on public.profiles for insert
   with check (auth.uid() = id);
 
-create policy if not exists "Users can view own investments"
+drop policy if exists "Users can view own investments" on public.user_investments;
+create policy "Users can view own investments"
   on public.user_investments for select
   using (auth.uid() = user_id);
 
-create policy if not exists "Users can insert own investments"
+drop policy if exists "Users can insert own investments" on public.user_investments;
+create policy "Users can insert own investments"
   on public.user_investments for insert
   with check (auth.uid() = user_id);
 
-create policy if not exists "Users can update own investments"
+drop policy if exists "Users can update own investments" on public.user_investments;
+create policy "Users can update own investments"
   on public.user_investments for update
   using (auth.uid() = user_id);
 
-create policy if not exists "Users can view own transactions"
+drop policy if exists "Users can view own transactions" on public.transactions;
+create policy "Users can view own transactions"
   on public.transactions for select
   using (auth.uid() = user_id);
 
-create policy if not exists "Users can insert own transactions"
+drop policy if exists "Users can insert own transactions" on public.transactions;
+create policy "Users can insert own transactions"
   on public.transactions for insert
   with check (auth.uid() = user_id);
 
-create policy if not exists "Users can view own referral history"
+drop policy if exists "Users can view own referral history" on public.referral_history;
+create policy "Users can view own referral history"
   on public.referral_history for select
   using (auth.uid() = inviter_id or auth.uid() = invited_user_id);
 

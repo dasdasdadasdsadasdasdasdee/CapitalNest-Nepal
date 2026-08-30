@@ -85,12 +85,14 @@ begin
 end;
 $$ language plpgsql;
 
-create trigger if not exists withdrawals_updated_at
+drop trigger if exists withdrawals_updated_at on public.withdrawals;
+create trigger withdrawals_updated_at
 before update on public.withdrawals
 for each row
 execute function public.set_updated_at();
 
-create trigger if not exists referrals_updated_at
+drop trigger if exists referrals_updated_at on public.referrals;
+create trigger referrals_updated_at
 before update on public.referrals
 for each row
 execute function public.set_updated_at();
@@ -101,38 +103,47 @@ alter table public.referrals enable row level security;
 alter table public.notifications enable row level security;
 alter table public.admin_audit_logs enable row level security;
 
-create policy if not exists "Users can view their own wallet transactions"
+drop policy if exists "Users can view their own wallet transactions" on public.wallet_transactions;
+create policy "Users can view their own wallet transactions"
   on public.wallet_transactions for select
   using (auth.uid() = user_id);
 
-create policy if not exists "Users can insert their own wallet transactions"
+drop policy if exists "Users can insert their own wallet transactions" on public.wallet_transactions;
+create policy "Users can insert their own wallet transactions"
   on public.wallet_transactions for insert
   with check (auth.uid() = user_id);
 
-create policy if not exists "Users can view their own withdrawals"
+drop policy if exists "Users can view their own withdrawals" on public.withdrawals;
+create policy "Users can view their own withdrawals"
   on public.withdrawals for select
   using (auth.uid() = user_id);
 
-create policy if not exists "Users can insert their own withdrawals"
+drop policy if exists "Users can insert their own withdrawals" on public.withdrawals;
+create policy "Users can insert their own withdrawals"
   on public.withdrawals for insert
   with check (auth.uid() = user_id);
 
-create policy if not exists "Admins can manage all withdrawals"
+drop policy if exists "Admins can manage all withdrawals" on public.withdrawals;
+create policy "Admins can manage all withdrawals"
   on public.withdrawals for update
   using (exists (select 1 from public.profiles where id = auth.uid() and is_admin = true));
 
-create policy if not exists "Users can view their own referrals"
+drop policy if exists "Users can view their own referrals" on public.referrals;
+create policy "Users can view their own referrals"
   on public.referrals for select
   using (auth.uid() = user_id or auth.uid() = referred_by);
 
-create policy if not exists "Users can view their own notifications"
+drop policy if exists "Users can view their own notifications" on public.notifications;
+create policy "Users can view their own notifications"
   on public.notifications for select
   using (auth.uid() = user_id);
 
-create policy if not exists "Users can update their own notifications"
+drop policy if exists "Users can update their own notifications" on public.notifications;
+create policy "Users can update their own notifications"
   on public.notifications for update
   using (auth.uid() = user_id);
 
-create policy if not exists "Admins can view audit logs"
+drop policy if exists "Admins can view audit logs" on public.admin_audit_logs;
+create policy "Admins can view audit logs"
   on public.admin_audit_logs for select
   using (exists (select 1 from public.profiles where id = auth.uid() and is_admin = true));

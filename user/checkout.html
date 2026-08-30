@@ -900,7 +900,7 @@
                 ? crypto.randomUUID()
                 : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
             const fileExt = (file?.name?.split('.').pop() || 'png').toLowerCase();
-            return `payment-proofs/${userId}/${safeBaseName}-${uniqueSuffix}.${fileExt}`;
+            return `${userId}/${safeBaseName}-${uniqueSuffix}.${fileExt}`;
         }
 
         function isAllowedPaymentMimeType(mimeType) {

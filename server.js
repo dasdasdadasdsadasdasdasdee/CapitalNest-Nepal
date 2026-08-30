@@ -1,8 +1,14 @@
-require('dotenv').config();
-
-const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const dotenv = require('dotenv');
+
+const rootEnvPath = path.join(__dirname, '.env');
+const serverEnvPath = path.join(__dirname, 'server', '.env');
+
+dotenv.config({ path: rootEnvPath });
+dotenv.config({ path: serverEnvPath, override: true });
+
+const express = require('express');
 const walletApi = require('./server/wallet-api');
 const app = express();
 
@@ -27,6 +33,10 @@ app.get('/', (req, res) => {
 // Keep login page available explicitly.
 app.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, 'login.html'));
+});
+
+app.get('/loginadmin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin', 'loginadmin.html'));
 });
 
 // Fallback for other frontend routes to the home page instead of the login screen.

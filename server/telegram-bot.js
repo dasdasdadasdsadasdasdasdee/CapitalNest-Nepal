@@ -1,5 +1,7 @@
 require('dotenv').config();
 
+const { createClient } = require('@supabase/supabase-js');
+
 const botToken = process.env.TELEGRAM_BOT_TOKEN;
 const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
 const adminUserId = process.env.TELEGRAM_ADMIN_USER_ID;
@@ -8,6 +10,14 @@ const projectSupabaseUrl = 'https://mohigobcssqzywmhndml.supabase.co';
 const configuredSupabaseUrl = process.env.SUPABASE_URL?.replace(/\/$/, '');
 const supabaseUrl = projectSupabaseUrl;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+// Create Supabase admin client for storage operations
+const supabaseAdmin = serviceRoleKey && supabaseUrl 
+  ? createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    })
+  : null;
+
 const notifiedInvestmentIds = new Set();
 const notifiedDepositIds = new Set();
 let resolvedAdminSupabaseUserId = null;
@@ -29,8 +39,9 @@ if (configuredSupabaseUrl && configuredSupabaseUrl !== projectSupabaseUrl) {
 const TELEGRAM_API = `https://api.telegram.org/bot${botToken}`;
 
 function api(path, options = {}) {
+  const headers = options.headers || (options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' });
   return fetch(`${TELEGRAM_API}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     ...options,
   }).then(async (response) => {
     const text = await response.text();
@@ -132,59 +143,160 @@ function escapeHtml(value) {
 function normalizePaymentProofPath(proofPath) {
   if (!proofPath) return '';
 
-  const rawPath = String(proofPath).trim();
-  if (!rawPath) return '';
+  let normalized = String(proofPath).trim();
+  if (!normalized) return '';
 
-  const withoutQuery = rawPath.split('?')[0];
-  const withoutHash = withoutQuery.split('#')[0];
-  const normalized = withoutHash
-    .replace(/^https?:\/\/[A-Za-z0-9.-]+(?::\d+)?\/storage\/v1\/object\/(?:public|sign)\/payment-proofs\//i, '')
-    .replace(/^https?:\/\/[A-Za-z0-9.-]+(?::\d+)?\/storage\/v1\/object\/(?:public|sign)\//i, '')
-    .replace(/^\/+/, '')
-    .replace(/^payment-proofs\//i, '')
-    .replace(/^public\/payment-proofs\//i, '')
-    .replace(/^\/+/, '')
-    .replace(/\/+/g, '/');
+  try {
+    if (/^https?:\/\//i.test(normalized)) {
+      normalized = new URL(normalized).pathname;
+    }
+  } catch (error) {
+    // Keep the original value and apply the string prefixes below.
+  }
 
-  return normalized;
+  try {
+    normalized = decodeURIComponent(normalized);
+  } catch (error) {
+    // Ignore malformed URI encoding and keep the readable path.
+  }
+
+  normalized = normalized.replace(/[?#].*$/, '').replace(/^\/+/, '');
+
+  const prefixes = [
+    /^storage\/v1\/object\/(?:public|private|authenticated|sign)\//i,
+    /^object\/(?:public|private|authenticated|sign)\//i,
+    /^(?:public|private|authenticated|sign)\//i,
+    /^payment-proofs\//i,
+  ];
+
+  let previous;
+  do {
+    previous = normalized;
+    for (const prefix of prefixes) {
+      normalized = normalized.replace(prefix, '');
+    }
+    normalized = normalized.replace(/^\/+/, '');
+  } while (normalized !== previous);
+
+  return normalized === 'payment-proofs' ? '' : normalized;
+}
+
+function normalizeProofPath(proofPath) {
+  return normalizePaymentProofPath(proofPath);
 }
 
 function buildPaymentProofUrl(proofPath) {
-  if (!proofPath) return '';
-  if (/^https?:\/\//i.test(proofPath)) return proofPath;
+  if (!proofPath) {
+    console.warn('buildPaymentProofUrl: proofPath is empty');
+    return '';
+  }
+
+  if (/^https?:\/\//i.test(proofPath)) {
+    const pathOnly = proofPath.replace(/^https?:\/\/[^/]+/i, '');
+    if (/^(?:\/)?(?:storage\/v1\/object\/(?:public|private|authenticated)|object\/(?:public|private|authenticated|sign))\/payment-proofs\/?$/i.test(pathOnly)) {
+      console.warn('buildPaymentProofUrl: root payment-proofs bucket URL detected and rejected', { originalPath: proofPath });
+      return '';
+    }
+  }
 
   const normalizedPath = normalizePaymentProofPath(proofPath);
-  if (!normalizedPath) return '';
+  if (!normalizedPath) {
+    console.warn('buildPaymentProofUrl: normalized path is empty', { originalPath: proofPath });
+    return '';
+  }
 
-  return `${supabaseUrl}/storage/v1/object/public/payment-proofs/${normalizedPath
-    .split('/')
-    .map((segment) => encodeURIComponent(segment))
-    .join('/')}`;
+  try {
+    const url = `${supabaseUrl}/storage/v1/object/public/payment-proofs/${normalizedPath}`;
+    console.log('Built public payment proof URL', {
+      originalPath: proofPath,
+      normalizedPath,
+      url,
+      hasDuplicateBucket: url.includes('payment-proofs/payment-proofs/'),
+      hasCorrectPrefix: url.includes('/storage/v1/object/public/payment-proofs/')
+    });
+
+    if (url.includes('payment-proofs/payment-proofs/')) {
+      const fixed = url.replace(/payment-proofs\/payment-proofs\//g, 'payment-proofs/');
+      console.log('Fixed URL', { fixed });
+      return fixed;
+    }
+
+    return url;
+  } catch (error) {
+    console.error('buildPaymentProofUrl error', { error: error.message, proofPath });
+    return '';
+  }
 }
 
 async function getPaymentProofUrl(proofPath) {
-  if (!proofPath) return '';
-
-  const normalizedPath = normalizePaymentProofPath(proofPath);
-  if (!normalizedPath) return '';
-
-  try {
-    const signedResponse = await supabaseRequest(`/storage/v1/object/sign/payment-proofs/${normalizedPath
-      .split('/')
-      .map((segment) => encodeURIComponent(segment))
-      .join('/')}`, {
-      method: 'POST',
-      body: JSON.stringify({ expiresIn: 86400 }),
-    });
-    const signedPath = signedResponse?.signedURL || signedResponse?.signedUrl;
-    if (signedPath) {
-      return signedPath.startsWith('http') ? signedPath : `${supabaseUrl}${signedPath.startsWith('/') ? '' : '/'}${signedPath}`;
-    }
-  } catch (error) {
-    console.warn('Unable to create signed payment proof URL; using public storage URL fallback.', error.message);
+  if (!proofPath) {
+    console.warn('Payment proof path is empty');
+    return '';
   }
 
-  return buildPaymentProofUrl(proofPath);
+  const normalizedPath = normalizePaymentProofPath(proofPath);
+  if (!normalizedPath) {
+    console.warn('Payment proof path normalization returned empty', { originalPath: proofPath });
+    return '';
+  }
+
+  try {
+    if (!supabaseAdmin) {
+      throw new Error('Supabase admin client is not initialized');
+    }
+
+    console.log('Generating signed URL from bucket:', 'payment-proofs');
+    
+    const { data, error } = await supabaseAdmin.storage
+      .from('payment-proofs')
+      .createSignedUrl(normalizedPath, 86400); // 24 hours expiration
+
+    if (error) {
+      console.error('Failed to create payment proof signed URL:', {
+        error,
+        rawProofPath: normalizedPath,
+        originalValue: proofPath
+      });
+      throw error;
+    }
+
+    if (!data?.signedUrl) {
+      const missingUrlError = new Error('Supabase signed URL response is missing signedUrl');
+      console.error('Failed to create payment proof signed URL:', {
+        error: missingUrlError,
+        rawProofPath: normalizedPath,
+        originalValue: proofPath
+      });
+      throw missingUrlError;
+    }
+
+    console.log('Generated Telegram proof URL successfully:', true);
+    return data.signedUrl;
+  } catch (error) {
+    console.error('Payment proof URL signing failed:', { error, normalizedPath, proofPath });
+    throw error;
+  }
+}
+
+async function downloadPaymentProof(proofPath) {
+  const normalizedPath = normalizePaymentProofPath(proofPath);
+  console.log('Downloading payment proof fallback from Supabase:', { bucket: 'payment-proofs', rawProofPath: normalizedPath });
+
+  if (!supabaseAdmin) {
+    throw new Error('Supabase admin client is not initialized');
+  }
+
+  const { data, error } = await supabaseAdmin.storage
+    .from('payment-proofs')
+    .download(normalizedPath);
+
+  if (error) {
+    console.error('Supabase download fallback failed:', { error, rawProofPath: normalizedPath, originalValue: proofPath });
+    throw error;
+  }
+
+  const buffer = Buffer.from(await data.arrayBuffer());
+  return { buffer, contentType: data.type || 'image/webp' };
 }
 
 async function getDepositById(depositId) {
@@ -268,6 +380,56 @@ async function sendMessage(chatId, text) {
   });
 }
 
+async function sendPhoto(chatId, photoUrl, caption, replyMarkup = null) {
+  await api('/sendPhoto', {
+    method: 'POST',
+    body: JSON.stringify({
+      chat_id: chatId,
+      photo: photoUrl,
+      caption,
+      parse_mode: 'HTML',
+      ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
+    }),
+  });
+}
+
+async function sendPhotoBuffer(chatId, buffer, caption, contentType, replyMarkup = null) {
+  const formData = new FormData();
+  formData.append('chat_id', String(chatId));
+  formData.append('photo', new Blob([buffer], { type: contentType }), 'payment-proof');
+  formData.append('caption', caption);
+  formData.append('parse_mode', 'HTML');
+  if (replyMarkup) formData.append('reply_markup', JSON.stringify(replyMarkup));
+
+  return api('/sendPhoto', { method: 'POST', body: formData });
+}
+
+async function sendPaymentProof(chatId, proofPath, caption, replyMarkup) {
+  const normalizedPath = normalizePaymentProofPath(proofPath);
+  if (!normalizedPath) return false;
+
+  console.log('Deposit proof original value:', proofPath);
+  console.log('Deposit proof normalized path:', normalizedPath);
+
+  try {
+    const proofUrl = await getPaymentProofUrl(normalizedPath);
+    await sendPhoto(chatId, proofUrl, caption, replyMarkup);
+    return true;
+  } catch (photoError) {
+    console.error('Telegram sendPhoto failed for payment proof:', photoError);
+  }
+
+  const { buffer, contentType } = await downloadPaymentProof(normalizedPath);
+  try {
+    await sendPhotoBuffer(chatId, buffer, caption, contentType, replyMarkup);
+    console.log('Telegram payment proof sent using downloaded Buffer fallback.');
+    return true;
+  } catch (bufferError) {
+    console.error('Telegram sendPhoto Buffer fallback failed:', bufferError);
+    throw bufferError;
+  }
+}
+
 async function notifyPendingInvestments() {
   if (!adminChatId) return;
 
@@ -275,34 +437,30 @@ async function notifyPendingInvestments() {
   for (const investment of investments || []) {
     if (!investment.id || notifiedInvestmentIds.has(investment.id)) continue;
 
-    const proofUrl = await getPaymentProofUrl(investment.payment_proof_url || investment.payment_proof_path || '');
-    const message = [
+    const proofPath = investment.payment_proof_url || investment.payment_proof_path || '';
+    const caption = [
       '<b>🔔 NEW PAYMENT VERIFICATION</b>',
       '━━━━━━━━━━━━━━━━',
       `💰 Amount: NPR ${Number(investment.amount || investment.investment_amount || 0).toLocaleString('en-US')}`,
       `📦 Plan: ${investment.investment_plan || investment.plan_name || 'Investment'}`,
       `📧 Email: ${investment.email || investment.user_email || 'N/A'}`,
       `🆔 Investment ID: ${investment.id}`,
-      `🖼 Proof: ${proofUrl ? `<a href="${escapeHtml(proofUrl)}">View Payment Proof</a>` : 'Not available'}`,
       '',
       '📌 Status: PENDING',
     ].join('\n');
 
-    await api('/sendMessage', {
-      method: 'POST',
-      body: JSON.stringify({
-        chat_id: adminChatId,
-        text: message,
-        parse_mode: 'HTML',
-        disable_web_page_preview: true,
-        reply_markup: {
-          inline_keyboard: [[
-            { text: '✅ APPROVE', callback_data: `approve:${investment.id}` },
-            { text: '❌ REJECT', callback_data: `reject:${investment.id}` },
-          ]],
-        },
-      }),
-    });
+    const keyboard = {
+      inline_keyboard: [[
+        { text: '✅ APPROVE', callback_data: `approve:${investment.id}` },
+        { text: '❌ REJECT', callback_data: `reject:${investment.id}` },
+      ]],
+    };
+
+    if (proofPath) {
+      await sendPaymentProof(adminChatId, proofPath, caption, keyboard);
+    } else {
+      await sendMessage(adminChatId, `${caption}\n\n🖼 Proof: Not available`);
+    }
 
     notifiedInvestmentIds.add(investment.id);
     await markTelegramNotified('investments', investment.id);
@@ -317,10 +475,10 @@ async function notifyPendingDeposits() {
   for (const deposit of deposits || []) {
     if (!deposit.id || notifiedDepositIds.has(deposit.id)) continue;
 
-    const proofUrl = await getPaymentProofUrl(deposit.payment_proof_path || '');
+    const proofPath = deposit.payment_proof_path || '';
     const email = await getUserEmail(deposit.user_id);
     const planName = String(deposit.reference_id || '').split('-')[0] || 'Investment';
-    const message = [
+    const caption = [
       '<b>🔔 NEW DEPOSIT VERIFICATION</b>',
       '━━━━━━━━━━━━━━━━',
       `💰 Amount: NPR ${Number(deposit.amount || 0).toLocaleString('en-US')}`,
@@ -329,26 +487,22 @@ async function notifyPendingDeposits() {
       `📧 Email: ${escapeHtml(email)}`,
       `🆔 Deposit ID: ${deposit.id}`,
       `👤 User ID: ${deposit.user_id || 'N/A'}`,
-      `🖼 Proof: ${proofUrl ? `<a href="${escapeHtml(proofUrl)}">View Payment Proof</a>` : 'Not available'}`,
       `🕐 Submitted: ${new Date(deposit.created_at || Date.now()).toLocaleString('en-GB')}`,
       '📌 Status: PENDING',
     ].join('\n');
 
-    await api('/sendMessage', {
-      method: 'POST',
-      body: JSON.stringify({
-        chat_id: adminChatId,
-        text: message,
-        parse_mode: 'HTML',
-        disable_web_page_preview: true,
-        reply_markup: {
-          inline_keyboard: [[
-            { text: '✅ APPROVE DEPOSIT', callback_data: `deposit:approve:${deposit.id}` },
-            { text: '❌ REJECT DEPOSIT', callback_data: `deposit:reject:${deposit.id}` },
-          ]],
-        },
-      }),
-    });
+    const keyboard = {
+      inline_keyboard: [[
+        { text: '✅ APPROVE DEPOSIT', callback_data: `deposit:approve:${deposit.id}` },
+        { text: '❌ REJECT DEPOSIT', callback_data: `deposit:reject:${deposit.id}` },
+      ]],
+    };
+
+    if (proofPath) {
+      await sendPaymentProof(adminChatId, proofPath, caption, keyboard);
+    } else {
+      await sendMessage(adminChatId, `${caption}\n\n🖼 Proof: Not available`);
+    }
 
     notifiedDepositIds.add(deposit.id);
     await markTelegramNotified('deposits', deposit.id);
@@ -522,4 +676,4 @@ if (botToken && supabaseUrl && serviceRoleKey) {
   })();
 }
 
-module.exports = { stopTelegramBot, normalizePaymentProofPath, buildPaymentProofUrl, getPaymentProofUrl };
+module.exports = { stopTelegramBot, normalizePaymentProofPath, normalizeProofPath, buildPaymentProofUrl, getPaymentProofUrl };

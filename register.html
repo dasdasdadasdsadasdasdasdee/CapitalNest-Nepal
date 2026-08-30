@@ -491,8 +491,14 @@
         async function validateInvitationCode(inviteCode) {
             const cleanedCode = normalizeInvitationCode(inviteCode);
             if (!cleanedCode) return true;
-            const isSupportedFormat = /^\d{7}$/.test(cleanedCode) || /^CN[A-Z0-9]{11}$/i.test(cleanedCode) || /^CN[A-Z0-9]{7,13}$/i.test(cleanedCode);
-            if (!isSupportedFormat) return false;
+            
+            // Accept any code that looks reasonable - let database validation handle the specifics
+            // Accept: any alphanumeric code with at least 5 characters
+            const isValidFormat = /^[A-Z0-9]{5,}$/i.test(cleanedCode);
+            if (!isValidFormat) {
+                console.warn(`Invalid code format: "${cleanedCode}"`);
+                return false;
+            }
 
             try {
                 const { data, error } = await supabase.rpc('validate_invitation_code', {
@@ -501,20 +507,30 @@
 
                 if (error) {
                     console.error('Invitation validation RPC error:', error);
-                    throw error;
+                    console.error('Code being validated:', cleanedCode);
+                    // If RPC fails, still allow registration to proceed
+                    // The server-side trigger will handle referral processing
+                    return true;
                 }
 
+                console.log('Invitation validation result:', data, 'for code:', cleanedCode);
                 return !!data;
             } catch (error) {
                 console.error('Invitation validation failed:', error);
-                throw error;
+                // If validation fails, allow registration to continue
+                // The server-side trigger will handle the referral
+                return true;
             }
         }
 
         async function applyReferralIfPresent(userId, inviteCode) {
             const cleanedCode = normalizeInvitationCode(inviteCode);
-            const isSupportedFormat = /^\d{7}$/.test(cleanedCode) || /^CN[A-Z0-9]{11}$/i.test(cleanedCode) || /^CN[A-Z0-9]{7,13}$/i.test(cleanedCode);
-            if (!userId || !cleanedCode || !isSupportedFormat) return;
+            // Accept codes that look reasonable - any alphanumeric 5+ characters
+            const isValidFormat = /^[A-Z0-9]{5,}$/i.test(cleanedCode);
+            if (!userId || !cleanedCode || !isValidFormat) {
+                console.log('Skipping referral: userId valid?', !!userId, 'code valid?', !!cleanedCode, 'format valid?', isValidFormat);
+                return;
+            }
 
             try {
                 const { error } = await supabase.rpc('process_referral', {
@@ -602,13 +618,13 @@
                     try {
                         const isValid = await validateInvitationCode(inviteCode);
                         if (!isValid) {
-                            showMessage('error', 'Invalid invitation code.');
+                            showMessage('error', 'Invalid invitation code format. Please check and try again.');
                             return;
                         }
                     } catch (error) {
-                        showMessage('error', 'Unable to validate invitation code right now. Please try again.');
-                        console.error('Invitation validation UI error:', error);
-                        return;
+                        // Log the error but continue with registration
+                        // Server-side processing will handle referral logic
+                        console.warn('Invitation code validation error (will retry server-side):', error);
                     }
                 }
 
@@ -640,6 +656,24 @@
                     }
 
                     if (data?.user) {
+                        if (inviteCode) {
+                            const { error: profileError } = await supabase
+                                .from('profiles')
+                                .upsert({
+                                    id: data.user.id,
+                                    email,
+                                    phone,
+                                    country_code: countryCode,
+                                    invitation_code: inviteCode,
+                                    full_name: data.user.user_metadata?.full_name || '',
+                                    updated_at: new Date().toISOString()
+                                }, { onConflict: 'id' });
+
+                            if (profileError) {
+                                console.warn('Profile referral metadata sync failed:', profileError);
+                            }
+                        }
+
                         await applyReferralIfPresent(data.user.id, inviteCode);
                         showMessage('success', 'Registration successful. Please check your email to confirm your account.');
                         form.reset();

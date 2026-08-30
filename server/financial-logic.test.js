@@ -276,7 +276,12 @@ test('payment proof URL normalization strips duplicate bucket prefixes and inval
   assert.equal(normalizePaymentProofPath('/payment-proofs/abc123/file.png'), 'abc123/file.png');
   assert.equal(normalizePaymentProofPath('https://mohigobcssqzywmhndml.supabase.co/storage/v1/object/public/payment-proofs/abc123/file.png'), 'abc123/file.png');
   assert.equal(normalizePaymentProofPath('https://mohigobcssqzywmhndml.supabase.co/storage/v1/object/public/payment-proofs/abc123/file.png?token=test'), 'abc123/file.png');
+  assert.equal(normalizePaymentProofPath('https://mohigobcssqzywmhndml.supabase.co/storage/v1/object/sign/payment-proofs/payment-proofs/abc123/file.png?token=test'), 'abc123/file.png');
+  assert.equal(normalizePaymentProofPath('https://mohigobcssqzywmhndml.supabase.co/storage/v1/object/public/payment-proofs/payment-proofs/3cbcb7a7-3b0f-41e1-a0e7-7940901de9b9/ESEWA-LOGO-8df99988-6483-4203-b16e-618b3c70fee6.webp'), '3cbcb7a7-3b0f-41e1-a0e7-7940901de9b9/ESEWA-LOGO-8df99988-6483-4203-b16e-618b3c70fee6.webp');
+  assert.equal(normalizePaymentProofPath('https://mohigobcssqzywmhndml.supabase.co/storage/v1/object/public/payment-proofs/payment-proofs/'), '');
+  assert.equal(normalizePaymentProofPath('public/payment-proofs/public/abc123/file.png'), 'abc123/file.png');
 
   const url = buildPaymentProofUrl('payment-proofs/abc123/file.png');
   assert.match(url, /^https:\/\/mohigobcssqzywmhndml\.supabase\.co\/storage\/v1\/object\/public\/payment-proofs\/abc123\/file\.png$/);
+  assert.equal(buildPaymentProofUrl('https://mohigobcssqzywmhndml.supabase.co/storage/v1/object/public/payment-proofs/payment-proofs/'), '');
 });

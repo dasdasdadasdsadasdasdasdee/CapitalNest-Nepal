@@ -577,6 +577,7 @@
                                     <th>Status<br></th>
                                     <th>Plan</th>
                                     <th>Date</th>
+                                    <th>Proof</th>
                                     <th></th>
                                 </tr>
                             </thead>
@@ -652,6 +653,72 @@
         function getPlanName(item) {
             const raw = item.plan_name || item.investment_plan || item.name || 'Investment';
             return String(raw).trim() || 'Investment';
+        }
+
+        function buildPaymentProofUrl(proofPath) {
+            if (!proofPath) return '';
+            if (/^https?:\/\//i.test(proofPath)) return proofPath;
+            
+            const normalizedPath = String(proofPath)
+                .trim()
+                .replace(/^https?:\/\/[A-Za-z0-9.-]+(?::\d+)?\/storage\/v1\/object\/(?:public|sign)\/payment-proofs\//i, '')
+                .replace(/^payment-proofs\//i, '')
+                .replace(/^public\/payment-proofs\//i, '');
+            
+            if (!normalizedPath) return '';
+            
+            const supabaseUrl = window.CAPITALNEST_SUPABASE?.url || '';
+            return `${supabaseUrl}/storage/v1/object/public/payment-proofs/${normalizedPath}`;
+        }
+
+        function showPaymentProofModal(imageSrc, referenceNo) {
+            if (!imageSrc) {
+                alert('Payment proof is not available for this investment.');
+                return;
+            }
+            
+            const modal = document.getElementById('proofImageModal');
+            if (!modal) {
+                const newModal = document.createElement('div');
+                newModal.id = 'proofImageModal';
+                newModal.style.cssText = `
+                    display: none;
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.8);
+                    z-index: 2000;
+                    align-items: center;
+                    justify-content: center;
+                    flex-direction: column;
+                `;
+                newModal.innerHTML = `
+                    <div style="position: relative; max-width: 90vw; max-height: 85vh; display: flex; flex-direction: column; align-items: center;">
+                        <img id="proofModalImage" src="" alt="Payment Proof" style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);">
+                        <p id="proofModalRef" style="color: #fff; margin-top: 15px; font-size: 14px;">Reference: </p>
+                        <button onclick="closePaymentProofModal()" style="position: absolute; top: -40px; right: 0; background: #fff; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 24px; display: flex; align-items: center; justify-content: center;">×</button>
+                    </div>
+                `;
+                document.body.appendChild(newModal);
+            }
+            
+            const modal2 = document.getElementById('proofImageModal');
+            const img = document.getElementById('proofModalImage');
+            const ref = document.getElementById('proofModalRef');
+            
+            img.src = imageSrc;
+            ref.textContent = `Reference: ${referenceNo}`;
+            modal2.style.display = 'flex';
+            modal2.onclick = (e) => {
+                if (e.target === modal2) closePaymentProofModal();
+            };
+        }
+
+        function closePaymentProofModal() {
+            const modal = document.getElementById('proofImageModal');
+            if (modal) modal.style.display = 'none';
         }
 
         function renderActivePackage(activeInvestment, maturedTotal, activeTotal, walletBalance) {
@@ -786,15 +853,20 @@
                     active: { label: remainingDays > 0 ? 'Active' : 'Matured', className: remainingDays > 0 ? 'text-success' : 'text-primary' }
                 };
                 const state = statusMap[status] || { label: 'Upcoming', className: 'text-warning' };
+                
+                const proofPath = item.payment_proof_path || item.payment_proof_url || '';
+                const proofUrl = buildPaymentProofUrl(proofPath);
+                const refNo = (item.id || '').slice(0, 10).toUpperCase() || 'INV';
 
                 return `
                     <tr>
                         <td>${index + 1}</td>
-                        <td><a href="investment-details.html">${(item.id || '').slice(0, 10).toUpperCase() || 'INV'}</a></td>
+                        <td><a href="investment-details.html">${refNo}</a></td>
                         <td><p class="text-nowrap table-p">${formatCurrency(getInvestmentAmount(item))}</p></td>
                         <td><p class="text-nowrap table-p ${state.className}"><strong>${state.label}</strong></p></td>
                         <td><p class="text-nowrap table-p"><strong>${getPlanName(item)}</strong></p></td>
                         <td><p class="text-nowrap table-p">${formatDate(createdAt)}</p></td>
+                        <td>${proofUrl ? `<button onclick="showPaymentProofModal('${proofUrl.replace(/'/g, "\\'")}', '${refNo}')" style="background: #2a30fe; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">View Proof</button>` : '<span style="color: #999;">No proof</span>'}</td>
                         <td><p class="text-nowrap table-p">${remainingDays}d left</p></td>
                     </tr>
                 `;

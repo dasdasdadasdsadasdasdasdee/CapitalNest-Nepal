@@ -19,22 +19,33 @@ const router = express.Router();
 const projectSupabaseUrl = 'https://mohigobcssqzywmhndml.supabase.co';
 const configuredSupabaseUrl = process.env.SUPABASE_URL?.replace(/\/$/, '');
 const supabaseUrl = projectSupabaseUrl;
-const supabaseServiceRole = configuredSupabaseUrl === projectSupabaseUrl
-  ? process.env.SUPABASE_SERVICE_ROLE_KEY
-  : null;
+
+// Use service role key if available, regardless of URL mismatch
+// This allows using the key even if .env has outdated URL
+const supabaseServiceRole = process.env.SUPABASE_SERVICE_ROLE_KEY || null;
+
 const supabaseAnonKey = 'sb_publishable_MRVoyKc48ERptjd1G9l08g_3YTAleje';
 
 if (configuredSupabaseUrl && configuredSupabaseUrl !== projectSupabaseUrl) {
-  console.warn(`Ignoring mismatched SUPABASE_URL (${configuredSupabaseUrl}); using ${projectSupabaseUrl}.`);
+  console.warn(`Configured SUPABASE_URL (${configuredSupabaseUrl}) differs from project URL (${projectSupabaseUrl}). Using project URL.`);
 }
 
 if (!supabaseServiceRole) {
-  console.warn('Supabase service-role key is unavailable for the configured project. User-authenticated requests will use the JWT from the browser session.');
+  console.warn('⚠️ Supabase service-role key is unavailable. Deposits may fail due to RLS restrictions. Set SUPABASE_SERVICE_ROLE_KEY in environment.');
+} else {
+  console.log('✅ Supabase service-role key loaded successfully.');
 }
 
 const supabase = createClient(supabaseUrl, supabaseServiceRole || supabaseAnonKey, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
+
+// Dedicated storage client for uploads (uses service role to bypass RLS)
+const storageClient = supabaseServiceRole
+  ? createClient(supabaseUrl, supabaseServiceRole, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    })
+  : supabase;
 
 function getRequestSupabaseClient(req) {
   const authHeader = req.headers.authorization || '';
@@ -49,10 +60,9 @@ function getRequestSupabaseClient(req) {
 }
 
 function getDepositWriteClient(req) {
-  if (supabaseServiceRole) {
-    return supabase;
-  }
-
+  // CRITICAL: Use authenticated user's token for deposits INSERT
+  // because RLS policy requires auth.uid() = user_id
+  // Service role would have auth.uid() = NULL, causing RLS check to fail
   return req.supabase || getRequestSupabaseClient(req);
 }
 
@@ -130,6 +140,17 @@ async function requireAuth(req, res, next) {
     });
     return respondError(res, 'UNAUTHORIZED', 'Authentication failed.', 401);
   }
+}
+
+async function isAdminUser(userId) {
+  const { data, error } = await supabase
+    .from('admin_users')
+    .select('is_active')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data?.is_active === true;
 }
 
 async function getWalletSummary(userId) {
@@ -236,21 +257,26 @@ router.get('/deposits', requireAuth, async (req, res) => {
 router.post('/deposits', requireAuth, upload.single('proofFile'), async (req, res) => {
   let stage = 'request parsing';
   try {
+    console.log('🔵 Deposit endpoint called');
+    
     const amount = Number(req.body.amount || 0);
     const method = String(req.body.paymentMethod || req.body.method || 'ESEWA').toUpperCase();
     const referenceId = String(req.body.referenceId || '').trim();
     const userId = req.user.id;
     const requestSupabase = getDepositWriteClient(req);
 
-    console.log('Deposit submit request received:', {
+    console.log('🔵 Deposit submit request received:', {
       userId,
       amount,
       method,
       referenceId,
       receivedFields: Object.keys(req.body || {}),
       hasServiceRole: Boolean(supabaseServiceRole),
+      requestSupabaseType: requestSupabase ? 'SupabaseClient' : 'null',
       paymentProofPath: req.body.paymentProofPath || null,
       filePresent: Boolean(req.file),
+      fileName: req.file?.filename || null,
+      fileMimeType: req.file?.mimetype || null,
       headers: {
         authHeaderPresent: Boolean(req.headers.authorization),
         contentType: req.headers['content-type']
@@ -279,7 +305,14 @@ router.post('/deposits', requireAuth, upload.single('proofFile'), async (req, re
       proofPath = `${userId}/${req.file.filename}`;
       const proofBytes = fs.readFileSync(req.file.path);
       stage = 'Supabase payment proof upload';
-      const { data: proofUpload, error: proofUploadError } = await requestSupabase.storage
+      console.log('🔵 Using storage client for payment proof upload:', {
+        clientType: supabaseServiceRole ? 'service_role' : 'authenticated',
+        proofPath,
+        fileSize: proofBytes.length,
+        mimeType: req.file.mimetype
+      });
+      
+      const { data: proofUpload, error: proofUploadError } = await storageClient.storage
         .from('payment-proofs')
         .upload(proofPath, proofBytes, {
           cacheControl: '3600',
@@ -302,7 +335,8 @@ router.post('/deposits', requireAuth, upload.single('proofFile'), async (req, re
       }
 
       proofPath = proofUpload?.path || proofPath;
-      console.log('Payment proof stored in Supabase:', { proofPath, userId });
+      proofPath = String(proofPath).replace(/^\/?payment-proofs\//i, '');
+      console.log('✅ Payment proof stored in Supabase:', { proofPath, userId });
     }
 
     stage = 'Supabase deposits insert';
@@ -341,10 +375,21 @@ router.post('/deposits', requireAuth, upload.single('proofFile'), async (req, re
         referenceId,
         proofPath
       });
+      
+      // Provide specific error messages for common issues
+      if (insertError.code === '42501' || insertError.message?.includes('row level security')) {
+        console.error('RLS policy violation - user cannot insert own deposit');
+        throw new Error('RLS Policy Violation: Cannot insert deposit record - ensure auth.uid() can insert to deposits table');
+      }
+      if (insertError.code === '23503') {
+        console.error('Foreign key constraint - user_id may not exist in auth.users');
+        throw new Error('User ID does not exist in authentication system');
+      }
+      
       throw insertError;
     }
 
-    console.log('Deposit inserted successfully:', deposit);
+    console.log('✅ Deposit inserted successfully:', deposit);
 
     res.status(201).json({
       success: true,
@@ -353,7 +398,8 @@ router.post('/deposits', requireAuth, upload.single('proofFile'), async (req, re
     });
   } catch (error) {
     const errorId = crypto.randomUUID();
-    console.error('Deposit submission failed:', {
+    console.error('❌ Deposit submission failed at stage:', stage);
+    console.error('❌ Deposit submission error details:', {
       errorId,
       method: req.method,
       path: req.originalUrl,
@@ -363,10 +409,12 @@ router.post('/deposits', requireAuth, upload.single('proofFile'), async (req, re
       hint: error?.hint,
       code: error?.code,
       status: error?.status || null,
+      statusCode: error?.statusCode || null,
       stack: error?.stack,
       body: req.body,
       userId: req.user?.id || null,
-      filePresent: Boolean(req.file)
+      filePresent: Boolean(req.file),
+      fileName: req.file?.filename || null
     });
 
     if (error?.code === '42501') {
@@ -381,22 +429,33 @@ router.post('/deposits', requireAuth, upload.single('proofFile'), async (req, re
       return res.status(500).json({
         error: 'DEPOSIT_DATABASE_SCHEMA_ERROR',
         message: 'The deposit database configuration is incomplete. Please contact support.',
+        details: error?.message,
         errorId
       });
     }
 
-    res.status(500).json({
+    // Return detailed error for development debugging
+    const errorResponse = {
       error: 'DEPOSIT_SUBMIT_ERROR',
-      message: 'Unable to submit deposit. Please try again.',
+      message: error?.message || 'Unable to submit deposit. Please try again.',
+      stage,
       errorId
-    });
+    };
+    
+    // Include more details in development/local testing
+    if (process.env.NODE_ENV !== 'production') {
+      errorResponse.details = error?.details;
+      errorResponse.hint = error?.hint;
+      errorResponse.code = error?.code;
+    }
+    
+    res.status(500).json(errorResponse);
   }
 });
 
 router.get('/admin/deposits', requireAuth, async (req, res) => {
   try {
-    const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', req.user.id).single();
-    if (!profile?.is_admin) {
+    if (!await isAdminUser(req.user.id)) {
       return respondError(res, 'FORBIDDEN', 'Admin access required.', 403);
     }
 
@@ -412,10 +471,100 @@ router.get('/admin/deposits', requireAuth, async (req, res) => {
   }
 });
 
+router.get('/admin/dashboard', requireAuth, async (req, res) => {
+  try {
+    if (!await isAdminUser(req.user.id)) {
+      return respondError(res, 'FORBIDDEN', 'Admin access required.', 403);
+    }
+
+    const [profilesResult, adminUsersResult, transactionsResult, depositsResult, withdrawalsResult, investmentsResult] = await Promise.all([
+      supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+      supabase.from('admin_users').select('user_id, is_active'),
+      supabase.from('wallet_transactions').select('*').order('created_at', { ascending: false }),
+      supabase.from('deposits').select('*').order('created_at', { ascending: false }),
+      supabase.from('withdrawals').select('*').order('created_at', { ascending: false }),
+      supabase.from('investments').select('*').order('created_at', { ascending: false }),
+    ]);
+
+    const failedQuery = [profilesResult, adminUsersResult, transactionsResult, depositsResult, withdrawalsResult, investmentsResult]
+      .find((result) => result.error);
+    if (failedQuery) throw failedQuery.error;
+
+    const profiles = profilesResult.data || [];
+    const activeAdminIds = new Set((adminUsersResult.data || []).filter((item) => item.is_active).map((item) => item.user_id));
+    const transactions = transactionsResult.data || [];
+    const deposits = depositsResult.data || [];
+    const withdrawals = withdrawalsResult.data || [];
+    const investments = investmentsResult.data || [];
+
+    const users = profiles.map((user) => {
+      const userTransactions = transactions.filter((item) => item.user_id === user.id);
+      const userDeposits = deposits.filter((item) => item.user_id === user.id);
+      const userWithdrawals = withdrawals.filter((item) => item.user_id === user.id);
+      const userInvestments = investments.filter((item) => item.user_id === user.id);
+      const wallet = calculateWalletBalance(userTransactions);
+      const totalDeposited = userDeposits
+        .filter((item) => String(item.status).toUpperCase() === 'APPROVED')
+        .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+      const totalInvested = userInvestments
+        .filter((item) => !['PENDING', 'REJECTED', 'FAILED'].includes(String(item.status).toUpperCase()))
+        .reduce((sum, item) => sum + Number(item.purchase_amount ?? item.investment_amount ?? item.amount ?? 0), 0);
+
+      return {
+        ...user,
+        is_admin: activeAdminIds.has(user.id),
+        wallet,
+        invited_count: Number(user.invited_count || 0),
+        referral_bonus: Number(user.referral_bonus || 0),
+        referred_by: user.referred_by || null,
+        invitation_code: user.invitation_code || null,
+        stats: {
+          deposits: userDeposits.length,
+          totalDeposited: Number(totalDeposited.toFixed(2)),
+          approvedDeposits: userDeposits.filter((item) => String(item.status).toUpperCase() === 'APPROVED').length,
+          pendingDeposits: userDeposits.filter((item) => String(item.status).toUpperCase() === 'PENDING').length,
+          withdrawals: userWithdrawals.length,
+          pendingWithdrawals: userWithdrawals.filter((item) => ['PENDING', 'UNDER_REVIEW', 'PROCESSING'].includes(String(item.status).toUpperCase())).length,
+          investments: userInvestments.length,
+          totalInvested: Number(totalInvested.toFixed(2)),
+          transactions: userTransactions.length,
+        },
+      };
+    });
+
+    const pendingDeposits = deposits.filter((item) => String(item.status).toUpperCase() === 'PENDING');
+    const pendingWithdrawals = withdrawals.filter((item) => ['PENDING', 'UNDER_REVIEW', 'PROCESSING'].includes(String(item.status).toUpperCase()));
+
+    res.json({
+      success: true,
+      data: {
+        users,
+        deposits,
+        withdrawals,
+        investments,
+        transactions,
+        stats: {
+          users: users.length,
+          admins: users.filter((user) => user.is_admin).length,
+          totalAvailable: users.reduce((sum, user) => sum + Number(user.wallet.available || 0), 0),
+          totalInvested: users.reduce((sum, user) => sum + Number(user.wallet.invested || 0), 0),
+          totalEarned: users.reduce((sum, user) => sum + Number(user.wallet.totalEarned || 0), 0),
+          pendingDeposits: pendingDeposits.length,
+          pendingDepositAmount: pendingDeposits.reduce((sum, item) => sum + Number(item.amount || 0), 0),
+          pendingWithdrawals: pendingWithdrawals.length,
+          pendingWithdrawalAmount: pendingWithdrawals.reduce((sum, item) => sum + Number(item.amount || 0), 0),
+        },
+      },
+    });
+  } catch (error) {
+    console.error('Admin dashboard load failed:', { message: error?.message, code: error?.code });
+    res.status(500).json({ error: 'ADMIN_DASHBOARD_ERROR', message: 'Unable to load admin dashboard.' });
+  }
+});
+
 router.post('/admin/deposits/:id/approve', requireAuth, async (req, res) => {
   try {
-    const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', req.user.id).single();
-    if (!profile?.is_admin) {
+    if (!await isAdminUser(req.user.id)) {
       return respondError(res, 'FORBIDDEN', 'Admin access required.', 403);
     }
 
@@ -433,8 +582,7 @@ router.post('/admin/deposits/:id/approve', requireAuth, async (req, res) => {
 
 router.post('/admin/deposits/:id/reject', requireAuth, async (req, res) => {
   try {
-    const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', req.user.id).single();
-    if (!profile?.is_admin) {
+    if (!await isAdminUser(req.user.id)) {
       return respondError(res, 'FORBIDDEN', 'Admin access required.', 403);
     }
 
@@ -708,8 +856,7 @@ router.post('/notifications/:id/read', requireAuth, async (req, res) => {
 
 router.get('/admin/withdrawals', requireAuth, async (req, res) => {
   try {
-    const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', req.user.id).single();
-    if (!profile?.is_admin) {
+    if (!await isAdminUser(req.user.id)) {
       return respondError(res, 'FORBIDDEN', 'Admin access required.', 403);
     }
 
@@ -727,8 +874,7 @@ router.get('/admin/withdrawals', requireAuth, async (req, res) => {
 
 router.post('/admin/withdrawals/:id/approve', requireAuth, async (req, res) => {
   try {
-    const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', req.user.id).single();
-    if (!profile?.is_admin) {
+    if (!await isAdminUser(req.user.id)) {
       return respondError(res, 'FORBIDDEN', 'Admin access required.', 403);
     }
 
@@ -758,8 +904,7 @@ router.post('/admin/withdrawals/:id/approve', requireAuth, async (req, res) => {
 
 router.post('/admin/withdrawals/:id/reject', requireAuth, async (req, res) => {
   try {
-    const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', req.user.id).single();
-    if (!profile?.is_admin) {
+    if (!await isAdminUser(req.user.id)) {
       return respondError(res, 'FORBIDDEN', 'Admin access required.', 403);
     }
 
@@ -782,8 +927,7 @@ router.post('/admin/withdrawals/:id/reject', requireAuth, async (req, res) => {
 
 router.post('/admin/withdrawals/:id/process', requireAuth, async (req, res) => {
   try {
-    const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', req.user.id).single();
-    if (!profile?.is_admin) {
+    if (!await isAdminUser(req.user.id)) {
       return respondError(res, 'FORBIDDEN', 'Admin access required.', 403);
     }
 
@@ -801,8 +945,7 @@ router.post('/admin/withdrawals/:id/process', requireAuth, async (req, res) => {
 
 router.post('/admin/withdrawals/:id/paid', requireAuth, async (req, res) => {
   try {
-    const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', req.user.id).single();
-    if (!profile?.is_admin) {
+    if (!await isAdminUser(req.user.id)) {
       return respondError(res, 'FORBIDDEN', 'Admin access required.', 403);
     }
 

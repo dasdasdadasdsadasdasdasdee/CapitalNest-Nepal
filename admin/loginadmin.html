@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login | CapitalNest</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap">
+    <style>
+        :root { --ink: #18212b; --muted: #6b7280; --teal: #07564f; --green: #16845b; --line: #dfe5e3; --paper: #f4f7f5; }
+        * { box-sizing: border-box; }
+        body { min-height: 100vh; margin: 0; display: grid; place-items: center; background: var(--paper); color: var(--ink); font-family: "DM Sans", sans-serif; }
+        .login-shell { width: min(430px, 90vw); padding: 34px; background: white; border: 1px solid var(--line); box-shadow: 0 18px 55px rgba(7, 86, 79, .10); }
+        .mark { display: inline-block; margin-bottom: 30px; padding: 8px 10px; color: white; background: var(--teal); font-family: "Space Grotesk", sans-serif; font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+        h1 { margin: 0 0 8px; font-family: "Space Grotesk", sans-serif; font-size: 2rem; }
+        .intro { margin: 0 0 28px; color: var(--muted); }
+        label { display: block; margin: 18px 0 7px; font-size: .85rem; font-weight: 700; }
+        input { width: 100%; padding: 13px 14px; border: 1px solid var(--line); border-radius: 3px; color: var(--ink); font: inherit; }
+        input:focus { outline: 2px solid rgba(8, 127, 115, .22); border-color: var(--teal); }
+        button { width: 100%; margin-top: 25px; padding: 13px; border: 0; border-radius: 3px; color: white; background: var(--teal); font: inherit; font-weight: 700; cursor: pointer; }
+        button:disabled { cursor: wait; opacity: .65; }
+        .message { min-height: 22px; margin-top: 16px; font-size: .88rem; }
+        .message.error { color: #b42318; }
+        .message.success { color: var(--green); }
+        .back { display: block; margin-top: 24px; color: var(--muted); font-size: .85rem; text-align: center; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <main class="login-shell">
+        <div class="mark">CapitalNest / Admin</div>
+        <h1>Admin sign in</h1>
+        <p class="intro">Access the operations dashboard securely.</p>
+        <form id="adminLoginForm">
+            <label for="adminEmail">Email</label>
+            <input id="adminEmail" type="email" autocomplete="username" required>
+            <label for="adminPassword">Password</label>
+            <input id="adminPassword" type="password" autocomplete="current-password" required>
+            <button id="submitButton" type="submit">Sign in to dashboard</button>
+            <div id="message" class="message" role="status" aria-live="polite"></div>
+        </form>
+        <a class="back" href="../home.html">Back to CapitalNest</a>
+    </main>
+
+    <script src="../supabase-config.js"></script>
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+        const config = window.CAPITALNEST_SUPABASE;
+        const supabase = createClient(config.url, config.anonKey, { auth: { persistSession: true, autoRefreshToken: true } });
+        const form = document.getElementById('adminLoginForm');
+        const button = document.getElementById('submitButton');
+        const message = document.getElementById('message');
+
+        function showMessage(type, text) {
+            message.className = `message ${type}`;
+            message.textContent = text;
+        }
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            button.disabled = true;
+            button.textContent = 'Checking access...';
+            showMessage('', '');
+
+            try {
+                const email = document.getElementById('adminEmail').value.trim();
+                const password = document.getElementById('adminPassword').value;
+                const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+                if (signInError) throw signInError;
+
+                const { data: adminUser, error: profileError } = await supabase
+                    .from('admin_users')
+                    .select('is_active')
+                    .eq('user_id', authData.user.id)
+                    .maybeSingle();
+                if (profileError) throw profileError;
+                if (!adminUser?.is_active) {
+                    await supabase.auth.signOut();
+                    throw new Error('This account does not have administrator access.');
+                }
+
+                showMessage('success', 'Access approved. Opening dashboard...');
+                window.location.href = '/admin/dashboard.html';
+            } catch (error) {
+                console.error('Admin login failed:', error);
+                showMessage('error', error.message || 'Admin sign in failed.');
+                button.disabled = false;
+                button.textContent = 'Sign in to dashboard';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -28,18 +28,28 @@ BEGIN
 END;
 $$ language plpgsql;
 
-CREATE TRIGGER IF NOT EXISTS withdrawals_verification_update
+DROP TRIGGER IF EXISTS withdrawals_verification_update ON public.withdrawals;
+CREATE TRIGGER withdrawals_verification_update
 BEFORE UPDATE ON public.withdrawals
 FOR EACH ROW
 EXECUTE FUNCTION public.update_withdrawal_verification();
 
 -- Add constraint to ensure wallet_name and wallet_number are provided for all non-QR methods
-ALTER TABLE public.withdrawals
-ADD CONSTRAINT check_wallet_details 
-CHECK (
-  (method IN ('ESEWA', 'KHALTI') AND wallet_name IS NOT NULL AND wallet_number IS NOT NULL) OR
-  (method NOT IN ('ESEWA', 'KHALTI'))
-);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'public.withdrawals'::regclass
+      AND conname = 'check_wallet_details'
+  ) THEN
+    ALTER TABLE public.withdrawals
+    ADD CONSTRAINT check_wallet_details
+    CHECK (
+      (method IN ('ESEWA', 'KHALTI') AND wallet_name IS NOT NULL AND wallet_number IS NOT NULL) OR
+      (method NOT IN ('ESEWA', 'KHALTI'))
+    );
+  END IF;
+END $$;
 
 -- Create a function to validate wallet details format
 CREATE OR REPLACE FUNCTION public.validate_wallet_details(

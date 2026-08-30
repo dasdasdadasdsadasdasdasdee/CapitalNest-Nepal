@@ -1476,6 +1476,12 @@
             .on('postgres_changes', { event: '*', schema: 'public', table: 'referral_history', filter: `inviter_id=eq.${user.id}` }, () => {
                 loadAffiliateData(supabase, user);
             })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'wallet_transactions', filter: `user_id=eq.${user.id}` }, () => {
+                loadAffiliateData(supabase, user);
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions', filter: `user_id=eq.${user.id}` }, () => {
+                loadAffiliateData(supabase, user);
+            })
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` }, () => {
                 loadAffiliateData(supabase, user);
             })
@@ -1524,30 +1530,47 @@
 
             const { data: historyData = [], error: historyError } = await supabase
                 .from('referral_history')
-                .select('id, bonus_amount')
+                .select('id, bonus_amount, status')
                 .eq('inviter_id', user.id)
+                .in('status', ['completed', 'pending']);
+
+            const { data: walletBonusRows = [], error: walletBonusError } = await supabase
+                .from('wallet_transactions')
+                .select('amount, type, status')
+                .eq('user_id', user.id)
+                .in('type', ['WELCOME_BONUS', 'REFERRAL_BONUS'])
                 .eq('status', 'completed');
 
-            const { data: bonusTransactions = [], error: bonusError } = await supabase
+            const { data: legacyBonusTransactions = [], error: legacyBonusError } = await supabase
                 .from('transactions')
-                .select('amount')
+                .select('amount, type, status')
                 .eq('user_id', user.id)
-                .eq('type', 'welcome_bonus');
+                .in('type', ['welcome_bonus', 'referral_bonus'])
+                .eq('status', 'completed');
 
             if (historyError) {
                 console.warn('Referral history load failed:', historyError);
             }
 
-            if (bonusError) {
-                console.warn('Referral bonus load failed:', bonusError);
+            if (walletBonusError) {
+                console.warn('Wallet referral bonus load failed:', walletBonusError);
             }
 
+            if (legacyBonusError) {
+                console.warn('Legacy referral bonus load failed:', legacyBonusError);
+            }
+
+            const completedHistory = (historyData || []).filter(item => item?.status === 'completed');
             const invitedTotal = Math.max(
                 Number(profileData?.invited_count || 0),
-                Number(historyData.length || 0)
+                Number(completedHistory.length || 0)
             );
-            const totalBonus = historyData.reduce((sum, item) => sum + Number(item.bonus_amount || 0), 0)
-                + bonusTransactions.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+
+            const walletBonusTotal = (walletBonusRows || []).reduce((sum, item) => sum + Number(item.amount || 0), 0);
+            const legacyBonusTotal = (legacyBonusTransactions || []).reduce((sum, item) => sum + Number(item.amount || 0), 0);
+            const totalBonus = completedHistory.reduce((sum, item) => sum + Number(item.bonus_amount || 0), 0)
+                + walletBonusTotal
+                + legacyBonusTotal;
 
             invitedCountEl.textContent = String(invitedTotal);
             invitedCountEl.setAttribute('title', `${invitedTotal} invited users`);

@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CapitalNest Admin Dashboard</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap">
+    <style>
+        :root {
+            --ink: #18212b;
+            --muted: #6b7280;
+            --line: #e6e9ed;
+            --paper: #f6f8f7;
+            --panel: #ffffff;
+            --teal: #087f73;
+            --teal-dark: #07564f;
+            --orange: #e8793f;
+            --red: #c94242;
+            --green: #16845b;
+        }
+
+        * { box-sizing: border-box; }
+        body { margin: 0; color: var(--ink); background: var(--paper); font-family: "DM Sans", sans-serif; }
+        h1, h2, h3 { font-family: "Space Grotesk", sans-serif; }
+        .topbar { display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 22px 5vw; background: var(--teal-dark); color: white; }
+        .brand { margin: 0; font-size: 1.35rem; }
+        .topbar-actions { display: flex; align-items: center; gap: 14px; }
+        .admin-email { font-size: .86rem; opacity: .82; }
+        .shell { width: min(1500px, 90vw); margin: 30px auto 60px; }
+        .intro { display: flex; justify-content: space-between; align-items: end; gap: 20px; margin-bottom: 24px; }
+        .intro h1 { margin: 0 0 8px; font-size: clamp(1.8rem, 3vw, 2.8rem); }
+        .intro p { margin: 0; color: var(--muted); }
+        .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 26px; }
+        .stat { padding: 20px; background: var(--panel); border: 1px solid var(--line); border-top: 4px solid var(--teal); }
+        .stat:nth-child(2) { border-top-color: var(--orange); }
+        .stat:nth-child(3) { border-top-color: var(--green); }
+        .stat:nth-child(4) { border-top-color: var(--red); }
+        .stat-label { color: var(--muted); font-size: .82rem; }
+        .stat-value { margin-top: 8px; font-family: "Space Grotesk", sans-serif; font-size: 1.55rem; font-weight: 700; }
+        .tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+        .tab { border: 0; padding: 11px 16px; background: transparent; color: var(--muted); font: inherit; font-weight: 600; cursor: pointer; white-space: nowrap; }
+        .tab.active { color: var(--teal); border-bottom: 3px solid var(--teal); }
+        .panel { margin-top: 18px; background: var(--panel); border: 1px solid var(--line); overflow: hidden; }
+        .panel-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 18px 20px; border-bottom: 1px solid var(--line); }
+        .panel-head h2 { margin: 0; font-size: 1.15rem; }
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 780px; }
+        th, td { padding: 14px 16px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; font-size: .88rem; }
+        th { background: #fafbfb; color: var(--muted); font-size: .75rem; letter-spacing: .04em; text-transform: uppercase; }
+        tr:last-child td { border-bottom: 0; }
+        .money { font-weight: 700; white-space: nowrap; }
+        .muted { color: var(--muted); }
+        .small { font-size: .78rem; }
+        .status { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: .72rem; font-weight: 700; text-transform: uppercase; }
+        .status-pending, .status-under_review, .status-processing { color: #915611; background: #fff1d8; }
+        .status-approved, .status-paid, .status-completed { color: var(--green); background: #def5e9; }
+        .status-rejected { color: var(--red); background: #fde4e2; }
+        .actions { display: flex; flex-wrap: wrap; gap: 7px; min-width: 170px; }
+        button.action, .logout { border: 0; border-radius: 3px; padding: 8px 10px; color: white; font: inherit; font-size: .78rem; font-weight: 700; cursor: pointer; }
+        button.action.approve { background: var(--green); }
+        button.action.reject { background: var(--red); }
+        button.action.process { background: #667085; }
+        button.action.pay { background: var(--teal); }
+        .logout { background: rgba(255,255,255,.14); }
+        .proof { display: block; width: 76px; height: 58px; object-fit: cover; border: 1px solid var(--line); }
+        .empty, .loading, .error { padding: 48px 20px; text-align: center; color: var(--muted); }
+        .error { color: var(--red); }
+        .toast { position: fixed; right: 22px; bottom: 22px; max-width: 360px; padding: 13px 16px; color: white; background: var(--ink); box-shadow: 0 8px 24px rgba(0,0,0,.16); }
+        @media (max-width: 900px) { .stats { grid-template-columns: repeat(2, 1fr); } .intro { align-items: start; flex-direction: column; } }
+        @media (max-width: 560px) { .topbar { align-items: start; flex-direction: column; } .shell { width: 94vw; margin-top: 22px; } .stats { grid-template-columns: 1fr; } .admin-email { max-width: 230px; overflow: hidden; text-overflow: ellipsis; } }
+    </style>
+</head>
+<body>
+    <header class="topbar">
+        <h1 class="brand">CapitalNest / Admin</h1>
+        <div class="topbar-actions"><span id="adminEmail" class="admin-email"></span><button id="logoutButton" class="logout">Sign out</button></div>
+    </header>
+
+    <main class="shell">
+        <section class="intro">
+            <div><h1>Operations dashboard</h1><p>Users, balances, payment proofs, investments, and withdrawals.</p></div>
+            <button id="refreshButton" class="action pay">Refresh data</button>
+        </section>
+
+        <section id="stats" class="stats"></section>
+        <nav id="tabs" class="tabs" aria-label="Admin data views">
+            <button class="tab active" data-view="users">Users & balances</button>
+            <button class="tab" data-view="deposits">Deposits & proofs</button>
+            <button class="tab" data-view="withdrawals">Withdrawals</button>
+            <button class="tab" data-view="investments">Investments</button>
+            <button class="tab" data-view="transactions">Transactions</button>
+        </nav>
+        <section id="content" class="panel"><div class="loading">Loading dashboard data...</div></section>
+    </main>
+    <div id="toast" class="toast" hidden></div>
+
+    <script src="../supabase-config.js"></script>
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+        const supabaseConfig = window.CAPITALNEST_SUPABASE;
+        if (!supabaseConfig?.url || !supabaseConfig?.anonKey) {
+            throw new Error('Supabase public URL or anon key is missing.');
+        }
+        const supabase = createClient(supabaseConfig.url, supabaseConfig.anonKey, {
+            auth: { persistSession: true, autoRefreshToken: true }
+        });
+        let dashboard = null;
+        let activeView = 'users';
+        const refreshButton = document.getElementById('refreshButton');
+        const content = document.getElementById('content');
+
+        const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char]));
+        const money = (value) => `NPR ${Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+        const date = (value) => value ? new Date(value).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) : 'N/A';
+        const status = (value) => {
+            const normalized = String(value || 'N/A').toLowerCase();
+            return `<span class="status status-${esc(normalized)}">${esc(value || 'N/A')}</span>`;
+        };
+        const userMap = () => new Map((dashboard?.users || []).map((user) => [user.id, user]));
+        const userLabel = (id) => {
+            const user = userMap().get(id);
+            return esc(user?.email || user?.full_name || String(id || '').slice(0, 12) || 'Unknown');
+        };
+        const referrerLabel = (user) => {
+            if (!user?.referred_by) return '<span class="muted">No referrer</span>';
+            const referrer = userMap().get(user.referred_by);
+            if (!referrer) return '<span class="muted">Unknown referrer</span>';
+            return `${esc(referrer.full_name || referrer.email || 'Unknown')}<br><span class="muted small">${esc(referrer.invitation_code || 'No code')}</span>`;
+        };
+
+        async function authToken() {
+            const { data } = await supabase.auth.getSession();
+            return data.session?.access_token || '';
+        }
+
+        async function loadDashboard() {
+            console.log('Loading admin dashboard...');
+            const token = await authToken();
+            if (!token) throw new Error('Your admin session has expired. Please sign in again.');
+
+            const url = '/api/admin/dashboard';
+            console.log('Fetching users:', url);
+            console.log('Fetching deposits:', url);
+            console.log('Fetching withdrawals:', url);
+            console.log('Fetching investments:', url);
+            console.log('Fetching transactions:', url);
+            const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+            const responseText = await response.text();
+            let payload = {};
+            try { payload = responseText ? JSON.parse(responseText) : {}; } catch (parseError) {
+                console.error('Admin dashboard API returned invalid JSON:', { url, status: response.status, responseText, parseError });
+                throw new Error('The admin API returned an invalid response.');
+            }
+            if (!response.ok) {
+                console.error('Admin dashboard API error:', { url, status: response.status, responseBody: payload });
+            }
+            if (response.status === 401) return window.location.href = '../login.html';
+            if (!response.ok || !payload.success) throw new Error(payload.message || 'Unable to load dashboard data.');
+            dashboard = payload.data;
+            renderStats();
+            await renderView();
+        }
+
+        function showLoading(isLoading) {
+            refreshButton.disabled = isLoading;
+            refreshButton.textContent = isLoading ? 'Loading...' : 'Refresh data';
+            if (isLoading && !dashboard) content.innerHTML = '<div class="loading">Loading dashboard data...</div>';
+        }
+
+        function showError(error) {
+            console.error('Admin dashboard load failed:', error);
+            content.innerHTML = `<div class="error">Failed to load dashboard data. ${esc(error?.message || 'Please refresh.')}</div>`;
+        }
+
+        async function refreshDashboard() {
+            try {
+                showLoading(true);
+                await loadDashboard();
+            } catch (error) {
+                showError(error);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function renderStats() {
+            const totals = dashboard.stats;
+            document.getElementById('stats').innerHTML = [
+                ['Users', totals.users],
+                ['Available balance', money(totals.totalAvailable)],
+                ['Invested', money(totals.totalInvested)],
+                ['Pending deposits', `${totals.pendingDeposits} / ${money(totals.pendingDepositAmount)}`],
+            ].map(([label, value]) => `<article class="stat"><div class="stat-label">${label}</div><div class="stat-value">${esc(value)}</div></article>`).join('');
+        }
+
+        function table(title, head, rows) {
+            return `<div class="panel-head"><h2>${title}</h2><span class="muted small">${rows.length} records</span></div><div class="table-wrap">${rows.length ? `<table><thead><tr>${head.map((item) => `<th>${item}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table>` : '<div class="empty">No records found.</div>'}</div>`;
+        }
+
+        function renderUsers() {
+            const rows = dashboard.users.map((user) => `<tr>
+                <td><strong>${esc(user.full_name || 'Unnamed user')}</strong><br><span class="muted small">${esc(user.email || user.id)}</span><br><span class="muted small">${esc(user.phone || '')}</span></td>
+                <td>${status(user.is_admin ? 'ADMIN' : 'USER')}<br><span class="muted small">Joined ${date(user.created_at)}</span></td>
+                <td class="money">${money(user.wallet.available)}</td>
+                <td class="money">${money(user.stats.totalDeposited)}</td>
+                <td class="money">${money(user.stats.totalInvested)}</td>
+                <td>${referrerLabel(user)}</td>
+                <td>${esc(user.invitation_code || 'No code')}<br><span class="muted small">${Number(user.invited_count || 0)} invited</span></td>
+                <td class="money">${money(user.referral_bonus || 0)}</td>
+                <td>${user.stats.deposits} deposits<br>${user.stats.investments} investments<br>${user.stats.transactions} transactions</td>
+            </tr>`);
+            return table('All user accounts', ['Account', 'Role / joined', 'Available', 'Deposited', 'Invested', 'Referred by', 'Referral code', 'Referral balance', 'Activity'], rows);
+        }
+
+        async function proofUrl(path) {
+            const normalized = normalizeProofPath(path);
+            if (!normalized) return '';
+            let data, error;
+            try {
+                ({ data, error } = await supabase.storage.from('payment-proofs').createSignedUrl(normalized, 86400));
+            } catch (requestError) {
+                console.error('Supabase proof signed URL error:', { normalized, requestError });
+                return '';
+            }
+            if (error) console.error('Supabase proof signed URL error:', { normalized, error });
+            return data?.signedUrl || '';
+        }
+
+        function normalizeProofPath(value) {
+            if (!value) return '';
+            let path = String(value).trim();
+            try { if (/^https?:\/\//i.test(path)) path = new URL(path).pathname; } catch (_) {}
+            try { path = decodeURIComponent(path); } catch (_) {}
+            path = path.replace(/[?#].*$/, '').replace(/^\/+/, '');
+            const prefixes = [/^storage\/v1\/object\/(?:public|private|authenticated|sign)\//i, /^object\/(?:public|private|authenticated|sign)\//i, /^(?:public|private|authenticated|sign)\//i, /^payment-proofs\//i];
+            let previous = '';
+            while (previous !== path) { previous = path; prefixes.forEach((prefix) => { path = path.replace(prefix, ''); }); path = path.replace(/^\/+/, ''); }
+            return path;
+        }
+
+        async function renderDeposits() {
+            const rows = await Promise.all(dashboard.deposits.map(async (item) => {
+                const url = await proofUrl(item.payment_proof_path);
+                const proof = url ? `<a href="${esc(url)}" target="_blank" rel="noopener"><img class="proof" src="${esc(url)}" alt="Payment proof"></a>` : '<span class="muted">No proof</span>';
+                const actions = String(item.status).toUpperCase() === 'PENDING' ? `<div class="actions"><button class="action approve" data-action="approve-deposit" data-id="${esc(item.id)}">Approve</button><button class="action reject" data-action="reject-deposit" data-id="${esc(item.id)}">Reject</button></div>` : '-';
+                return `<tr><td>${userLabel(item.user_id)}<br><span class="muted small">${esc(item.id)}</span></td><td class="money">${money(item.amount)}</td><td>${esc(item.payment_method)}<br><span class="muted small">${esc(item.reference_id)}</span></td><td>${status(item.status)}</td><td>${proof}</td><td>${date(item.created_at)}</td><td>${actions}</td></tr>`;
+            }));
+            return table('Deposit requests and payment proofs', ['User', 'Amount', 'Method / reference', 'Status', 'Proof', 'Submitted', 'Actions'], rows);
+        }
+
+        function renderWithdrawals() {
+            const rows = dashboard.withdrawals.map((item) => {
+                const current = String(item.status || '').toUpperCase();
+                let actions = '-';
+                if (['PENDING', 'UNDER_REVIEW', 'PROCESSING'].includes(current)) actions = `<div class="actions"><button class="action approve" data-action="approve-withdrawal" data-id="${esc(item.id)}">Approve</button><button class="action reject" data-action="reject-withdrawal" data-id="${esc(item.id)}">Reject</button></div>`;
+                if (current === 'APPROVED') actions = `<div class="actions"><button class="action process" data-action="process-withdrawal" data-id="${esc(item.id)}">Processing</button><button class="action pay" data-action="pay-withdrawal" data-id="${esc(item.id)}">Mark paid</button></div>`;
+                return `<tr><td>${userLabel(item.user_id)}<br><span class="muted small">${esc(item.wallet_name || '')} / ${esc(item.wallet_number || '')}</span></td><td class="money">${money(item.amount)}</td><td>${esc(item.method)}</td><td>${status(item.status)}<br><span class="muted small">${esc(item.request_reference)}</span></td><td>${date(item.created_at)}</td><td>${actions}</td></tr>`;
+            });
+            return table('Withdrawal requests', ['User / destination', 'Amount', 'Method', 'Status / reference', 'Requested', 'Actions'], rows);
+        }
+
+        function renderInvestments() {
+            const rows = dashboard.investments.map((item) => {
+                const maturity = item.maturity_date || item.matured_at || (item.duration_days && item.created_at ? new Date(new Date(item.created_at).getTime() + Number(item.duration_days) * 86400000).toISOString() : '');
+                return `<tr><td>${userLabel(item.user_id)}</td><td>${esc(item.plan_name || item.investment_plan || 'Investment')}</td><td class="money">${money(item.purchase_amount ?? item.investment_amount ?? item.amount)}</td><td>${status(item.status)}</td><td>${date(item.created_at)}<br><span class="muted small">Matures ${date(maturity)}</span></td><td class="money">${money(item.expected_return ?? item.expected_returns)}</td><td class="money">${money(item.actual_return ?? item.return_amount)}</td><td>${esc(item.reference_id || '')}</td></tr>`;
+            });
+            return table('Investment accounts', ['User', 'Plan', 'Amount', 'Status', 'Dates', 'Expected return', 'Actual return', 'Reference'], rows);
+        }
+
+        function renderTransactions() {
+            const rows = dashboard.transactions.map((item) => `<tr><td>${userLabel(item.user_id)}</td><td>${esc(item.type)}</td><td class="money">${money(item.amount)}</td><td>${status(item.status)}</td><td>${esc(item.payment_method || '')}<br><span class="muted small">${esc(item.note || item.reference_id || '')}</span></td><td>${date(item.created_at)}</td></tr>`);
+            return table('Wallet ledger', ['User', 'Type', 'Amount', 'Status', 'Details', 'Created'], rows);
+        }
+
+        async function renderView() {
+            if (activeView === 'users') content.innerHTML = renderUsers();
+            if (activeView === 'deposits') content.innerHTML = await renderDeposits();
+            if (activeView === 'withdrawals') content.innerHTML = renderWithdrawals();
+            if (activeView === 'investments') content.innerHTML = renderInvestments();
+            if (activeView === 'transactions') content.innerHTML = renderTransactions();
+        }
+
+        async function mutate(action, id) {
+            const depositAction = action === 'approve-deposit' ? 'approve' : action === 'reject-deposit' ? 'reject' : action;
+            let endpoint = `/api/admin/deposits/${id}/${depositAction}`;
+            let options = { method: 'POST', headers: { Authorization: `Bearer ${await authToken()}`, 'Content-Type': 'application/json' }, body: '{}' };
+            if (action === 'approve-withdrawal' || action === 'reject-withdrawal' || action === 'process-withdrawal' || action === 'pay-withdrawal') endpoint = `/api/admin/withdrawals/${id}/${action.replace('-withdrawal', '')}`;
+            if (action === 'reject-deposit' || action === 'reject-withdrawal') options.body = JSON.stringify({ reason: window.prompt('Reason', 'Payment could not be verified.') || 'Payment could not be verified.' });
+            if (action === 'pay-withdrawal') options.body = JSON.stringify({ referenceId: window.prompt('Payment reference') || '' });
+            const response = await fetch(endpoint, options);
+            const payload = await response.json().catch(() => ({}));
+            if (!response.ok || !payload.success) throw new Error(payload.message || 'Action failed.');
+            showToast('Action completed.');
+            await refreshDashboard();
+        }
+
+        function showToast(message) { const toast = document.getElementById('toast'); toast.textContent = message; toast.hidden = false; setTimeout(() => { toast.hidden = true; }, 3500); }
+
+        document.getElementById('tabs').addEventListener('click', async (event) => {
+            const tab = event.target.closest('[data-view]');
+            if (!tab) return;
+            activeView = tab.dataset.view;
+            document.querySelectorAll('.tab').forEach((item) => item.classList.toggle('active', item === tab));
+            await renderView();
+        });
+        document.getElementById('content').addEventListener('click', async (event) => {
+            const button = event.target.closest('[data-action]');
+            if (!button) return;
+            button.disabled = true;
+            try { await mutate(button.dataset.action, button.dataset.id); } catch (error) { showToast(error.message); button.disabled = false; }
+        });
+        refreshButton.addEventListener('click', refreshDashboard);
+        document.getElementById('logoutButton').addEventListener('click', async () => { await supabase.auth.signOut(); window.location.href = '../login.html'; });
+
+        try {
+            const { data: { user }, error } = await supabase.auth.getUser();
+            if (error) throw error;
+            if (!user) {
+                window.location.href = '../login.html';
+            } else {
+                document.getElementById('adminEmail').textContent = user.email || '';
+                await refreshDashboard();
+            }
+        } catch (error) {
+            showError(error);
+            showLoading(false);
+        }
+    </script>
+</body>
+</html>

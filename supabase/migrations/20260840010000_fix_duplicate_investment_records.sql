@@ -57,36 +57,24 @@ where ui.id = r.id
 --    match the same purchase identity as another active record.
 with canonical as (
   select
-    min(id) as keep_id,
-    public.investment_dedupe_key(
-      user_id,
-      plan_name,
-      amount,
-      duration_days,
-      status,
-      created_at
-    ) as dedupe_key
+    id,
+    row_number() over (
+      partition by public.investment_dedupe_key(
+        user_id,
+        plan_name,
+        amount,
+        duration_days,
+        status,
+        created_at
+      )
+      order by created_at asc, id asc
+    ) as row_number
   from public.user_investments
-  group by public.investment_dedupe_key(
-    user_id,
-    plan_name,
-    amount,
-    duration_days,
-    status,
-    created_at
-  )
 )
 delete from public.user_investments ui
 using canonical c
-where ui.id <> c.keep_id
-  and public.investment_dedupe_key(
-    ui.user_id,
-    ui.plan_name,
-    ui.amount,
-    ui.duration_days,
-    ui.status,
-    ui.created_at
-  ) = c.dedupe_key;
+where ui.id = c.id
+  and c.row_number > 1;
 
 -- 4) Protect against future duplicate insertions by ensuring a unique index on the
 -- canonical identity. This does not delete user data; it prevents the same purchase
@@ -98,5 +86,5 @@ create unique index if not exists idx_user_investments_canonical_identity
     amount,
     duration_days,
     lower(coalesce(status, 'active')),
-    date_trunc('minute', created_at)
+    date_trunc('minute', created_at at time zone 'UTC')
   );

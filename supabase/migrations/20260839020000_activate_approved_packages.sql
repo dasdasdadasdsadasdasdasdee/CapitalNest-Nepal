@@ -1,4 +1,7 @@
 -- Activate approved package purchases and make them visible in investment/history views.
+alter table public.user_investments
+  add column if not exists reference_id text;
+
 create or replace function public.approve_deposit(p_deposit_id uuid, p_admin_id uuid)
 returns jsonb
 language plpgsql

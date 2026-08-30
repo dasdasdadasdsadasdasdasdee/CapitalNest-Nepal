@@ -253,14 +253,55 @@
             });
         }
         
-        async function getSignedProofUrl(path) {
-            if (!path) return null;
-            const normalizedPath = String(path)
-                .trim()
-                .replace(/^\/+/, '')
-                .replace(/^payment-proofs\//i, '')
-                .replace(/^public\/payment-proofs\//i, '');
+        function normalizeProofPath(value) {
+            if (value === null || value === undefined) return null;
+            let v = String(value).trim();
+            if (!v) return null;
 
+            try {
+                v = decodeURIComponent(v);
+            } catch (error) {
+                // fall through to heuristics
+            }
+
+            try {
+                if (v.startsWith('http://') || v.startsWith('https://')) {
+                    const url = new URL(v);
+                    v = url.pathname;
+                }
+            } catch (error) {
+                // fall through to heuristics
+            }
+
+            v = v.replace(/[?#].*$/, '').replace(/^\/+/, '');
+
+            const bucketFragments = [
+                /^storage\/v1\/object(?:\/public|\/private|\/authenticated|\/sign)?\//i,
+                /^object(?:\/public|\/private|\/authenticated|\/sign)?\//i,
+                /^payment-proofs\//i,
+                /^public\//i,
+                /^private\//i,
+                /^authenticated\//i,
+                /^\/+/, 
+            ];
+
+            let previous = '';
+            while (v !== previous) {
+                previous = v;
+                for (const pattern of bucketFragments) {
+                    if (pattern.test(v)) {
+                        v = v.replace(pattern, '');
+                    }
+                }
+                v = v.replace(/^\/+/, '');
+            }
+
+            if (!v.includes('/')) return null;
+            return v;
+        }
+
+        async function getSignedProofUrl(path) {
+            const normalizedPath = normalizeProofPath(path);
             if (!normalizedPath) return null;
 
             const { data, error } = await supabase.storage

@@ -11,11 +11,72 @@ const {
   parseTelegramCallbackData,
 } = require('./telegram-admin');
 
-const supabaseUrl = process.env.SUPABASE_URL;
+const projectSupabaseUrl = (process.env.SUPABASE_URL || 'https://mohigobcssqzywmhndml.supabase.co').replace(/\/$/, '');
+const supabaseUrl = projectSupabaseUrl;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const botToken = process.env.TELEGRAM_BOT_TOKEN;
 const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
 const adminUserId = process.env.TELEGRAM_ADMIN_USER_ID;
+
+function normalizePaymentProofPath(value) {
+  if (value === null || value === undefined) return '';
+
+  let v = String(value).trim();
+  if (!v) return '';
+
+  try {
+    v = decodeURIComponent(v);
+  } catch (error) {
+    // ignore malformed encoded values
+  }
+
+  try {
+    if (v.startsWith('http://') || v.startsWith('https://')) {
+      const url = new URL(v);
+      v = url.pathname;
+    }
+  } catch (error) {
+    // fall through to legacy string cleanup
+  }
+
+  v = v.replace(/[?#].*$/, '').replace(/^\/+/, '');
+
+  const bucketFragments = [
+    /^storage\/v1\/object(?:\/public|\/private|\/authenticated|\/sign)?\//i,
+    /^object(?:\/public|\/private|\/authenticated|\/sign)?\//i,
+    /^payment-proofs\//i,
+    /^public\//i,
+    /^private\//i,
+    /^authenticated\//i,
+    /^\/+/, 
+  ];
+
+  let previous = '';
+  while (v !== previous) {
+    previous = v;
+    for (const pattern of bucketFragments) {
+      if (pattern.test(v)) {
+        v = v.replace(pattern, '');
+      }
+    }
+    v = v.replace(/^\/+/, '');
+  }
+
+  return v;
+}
+
+function buildPaymentProofUrl(value) {
+  if (value && /^https?:\/\//i.test(String(value))) {
+    const pathOnly = String(value).replace(/^https?:\/\/[^/]+/i, '');
+    if (/^(?:\/)?(?:storage\/v1\/object\/(?:public|private|authenticated)|object\/(?:public|private|authenticated|sign))\/payment-proofs\/?$/i.test(pathOnly)) {
+      return '';
+    }
+  }
+
+  const normalized = normalizePaymentProofPath(value);
+  if (!normalized) return '';
+  return `${projectSupabaseUrl}/storage/v1/object/public/payment-proofs/${normalized}`;
+}
 
 const supabaseAdmin = createClient(supabaseUrl, supabaseKey, {
   auth: { persistSession: false, autoRefreshToken: false },
@@ -67,13 +128,12 @@ async function handleInvestmentSubmission(investment) {
   }
 
   if (botToken && adminChatId) {
-    const proofUrl = data.payment_proof_path
-      ? `https://your-project.supabase.co/storage/v1/object/public/payment-proofs/${data.payment_proof_path}`
-      : 'https://example.com/payment-proof';
+    const proofUrl = buildPaymentProofUrl(data.payment_proof_path || data.payment_proof || '');
+    const safeProofUrl = proofUrl || 'https://example.com/payment-proof';
 
     const message = buildInvestmentSubmittedMessage({
       ...data,
-      payment_proof_url: proofUrl,
+      payment_proof_url: safeProofUrl,
     });
 
     try {
