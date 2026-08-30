@@ -142,6 +142,29 @@ function buildPaymentProofUrl(proofPath) {
     .join('/')}`;
 }
 
+async function getPaymentProofUrl(proofPath) {
+  if (!proofPath) return '';
+
+  const normalizedPath = String(proofPath).replace(/^\/+/, '').replace(/^payment-proofs\//, '');
+  try {
+    const signedResponse = await supabaseRequest(`/storage/v1/object/sign/payment-proofs/${normalizedPath
+      .split('/')
+      .map((segment) => encodeURIComponent(segment))
+      .join('/')}`, {
+      method: 'POST',
+      body: JSON.stringify({ expiresIn: 86400 }),
+    });
+    const signedPath = signedResponse?.signedURL || signedResponse?.signedUrl;
+    if (signedPath) {
+      return signedPath.startsWith('http') ? signedPath : `${supabaseUrl}${signedPath.startsWith('/') ? '' : '/'}${signedPath}`;
+    }
+  } catch (error) {
+    console.warn('Unable to create signed payment proof URL; using public storage URL fallback.', error.message);
+  }
+
+  return buildPaymentProofUrl(proofPath);
+}
+
 async function getDepositById(depositId) {
   const data = await supabaseRequest(`/rest/v1/deposits?id=eq.${encodeURIComponent(depositId)}&select=*`, {
     method: 'GET',
@@ -222,7 +245,7 @@ async function notifyPendingInvestments() {
   for (const investment of investments || []) {
     if (!investment.id || notifiedInvestmentIds.has(investment.id)) continue;
 
-    const proofUrl = buildPaymentProofUrl(investment.payment_proof_url || investment.payment_proof_path || '');
+    const proofUrl = await getPaymentProofUrl(investment.payment_proof_url || investment.payment_proof_path || '');
     const message = [
       '<b>🔔 NEW PAYMENT VERIFICATION</b>',
       '━━━━━━━━━━━━━━━━',
@@ -263,7 +286,7 @@ async function notifyPendingDeposits() {
   for (const deposit of deposits || []) {
     if (!deposit.id || notifiedDepositIds.has(deposit.id)) continue;
 
-    const proofUrl = buildPaymentProofUrl(deposit.payment_proof_path || '');
+    const proofUrl = await getPaymentProofUrl(deposit.payment_proof_path || '');
     const email = await getUserEmail(deposit.user_id);
     const planName = String(deposit.reference_id || '').split('-')[0] || 'Investment';
     const message = [

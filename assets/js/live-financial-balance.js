@@ -138,7 +138,7 @@
     state.userId = user.id;
 
     const queries = await Promise.all([
-      supabase.from('transactions').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+      supabase.from('wallet_transactions').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
       supabase.from('user_investments').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
       supabase.from('investments').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
     ]);
@@ -175,7 +175,7 @@
     state.subscription = supabase.channel('capitalnest-financial-sync');
 
     state.subscription
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions', filter: `user_id=eq.${state.userId}` }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'wallet_transactions', filter: `user_id=eq.${state.userId}` }, () => {
         refreshFinancialSummary();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'user_investments', filter: `user_id=eq.${state.userId}` }, () => {

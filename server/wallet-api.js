@@ -257,7 +257,7 @@ router.post('/deposits', requireAuth, upload.single('proofFile'), async (req, re
 
     stage = 'deposit payload preparation';
     let proofPath = req.body.paymentProofPath || null;
-    if (req.file) {
+    if (!proofPath && req.file) {
       proofPath = `payment-proofs/${userId}/${req.file.filename}`;
     }
 
