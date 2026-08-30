@@ -38,6 +38,28 @@ app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'home.html'));
 });
 
+app.use((error, req, res, _next) => {
+  const errorId = require('crypto').randomUUID();
+  console.error('Unhandled server error:', {
+    errorId,
+    method: req.method,
+    path: req.originalUrl,
+    message: error?.message,
+    code: error?.code || null,
+    stack: error?.stack
+  });
+
+  if (req.path.startsWith('/api/')) {
+    return res.status(error?.statusCode || 500).json({
+      error: error?.code || 'INTERNAL_SERVER_ERROR',
+      message: error?.message || 'Unexpected server error.',
+      errorId
+    });
+  }
+
+  res.status(error?.statusCode || 500).send('Internal server error.');
+});
+
 if (process.env.TELEGRAM_BOT_TOKEN) {
   try {
     require('./server/telegram-bot');

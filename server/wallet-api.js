@@ -105,7 +105,13 @@ async function requireAuth(req, res, next) {
     req.supabase = requestSupabase;
     return next();
   } catch (error) {
-    console.error('requireAuth error:', error);
+    console.error('requireAuth error:', {
+      path: req.originalUrl,
+      message: error?.message,
+      code: error?.code || null,
+      status: error?.status || null,
+      stack: error?.stack
+    });
     return respondError(res, 'UNAUTHORIZED', 'Authentication failed.', 401);
   }
 }
@@ -263,16 +269,26 @@ router.post('/deposits', requireAuth, upload.single('proofFile'), async (req, re
       message: 'Deposit submitted successfully and is pending admin approval.',
     });
   } catch (error) {
+    const errorId = crypto.randomUUID();
     console.error('Deposit submission failed:', {
+      errorId,
+      method: req.method,
+      path: req.originalUrl,
       message: error?.message,
       details: error?.details,
       hint: error?.hint,
       code: error?.code,
+      status: error?.status || null,
+      stack: error?.stack,
       body: req.body,
       userId: req.user?.id || null,
       filePresent: Boolean(req.file)
     });
-    res.status(500).json({ error: 'DEPOSIT_SUBMIT_ERROR', message: 'Unable to submit deposit.' });
+    res.status(500).json({
+      error: 'DEPOSIT_SUBMIT_ERROR',
+      message: 'Unable to submit deposit. Please try again.',
+      errorId
+    });
   }
 });
 
