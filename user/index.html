@@ -504,17 +504,20 @@
         @media (max-width: 768px) {
             .card-bg2 {
                 padding: 14px;
-                overflow: hidden;
+                overflow: visible;
             }
 
             .card-bg2 .row {
                 margin-left: 0 !important;
                 margin-right: 0 !important;
+                width: 100%;
+                max-width: 100%;
             }
 
             .card-bg2 .col {
                 padding-left: 0;
                 padding-right: 0;
+                max-width: 100%;
             }
         }
 
@@ -525,22 +528,28 @@
                 gap: 0;
                 width: 100%;
                 max-width: 100%;
+                overflow: visible;
             }
 
             .affiliate-link-input {
                 width: 100% !important;
                 max-width: 100% !important;
+                min-width: 0 !important;
                 min-height: 54px;
                 border-radius: 0.375rem 0.375rem 0 0 !important;
                 font-size: 16px;
                 line-height: 1.5;
                 padding: 14px 12px !important;
                 display: block;
+                box-sizing: border-box;
+                overflow: visible;
             }
 
             .affiliate-link-append {
                 display: block;
                 width: 100%;
+                max-width: 100%;
+                overflow: visible;
             }
 
             .affiliate-link-button {
@@ -553,16 +562,22 @@
                 font-size: 14px;
                 font-weight: 500;
                 display: block;
+                box-sizing: border-box;
             }
         }
 
         @supports (-webkit-touch-callout: none) {
+            .card-bg2 {
+                overflow: visible;
+            }
+
             .affiliate-link-row {
                 display: flex;
                 flex-direction: column;
                 gap: 0;
                 width: 100%;
                 max-width: 100%;
+                overflow: visible;
             }
 
             .affiliate-link-input,
@@ -570,6 +585,8 @@
             .affiliate-link-button {
                 width: 100%;
                 max-width: 100%;
+                min-width: 0;
+                box-sizing: border-box;
             }
 
             .affiliate-link-button {
