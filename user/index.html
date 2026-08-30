@@ -563,16 +563,16 @@
                     <form id="fundwalletform">
                         <div class="form-row">
                             <div class="col">
-                                <div class="form-group"><label for="paymenttype">Payment Type</label><select class="form-control" id="paymenttype" required=""><optgroup label="Supported Payment Types"><option value="Bank Transfer" selected="">Bank Transfer</option><option value="eSewa">eSewa</option><option value="IME Pay">IME Pay</option><option value="Khalti">Khalti</option></optgroup></select></div>
+                                <div class="form-group"><label for="paymenttype">Payment Type</label><select class="form-control" id="paymenttype" required=""><optgroup label="Supported Payment Types"><option value="eSewa" selected="">eSewa</option><option value="Khalti">Khalti</option><option value="FonePay">FonePay</option></optgroup></select></div>
                             </div>
                             <div class="col-lg-8">
                                 <div class="form-group"><label for="fundamount">Amount</label><input class="form-control" type="text" id="fundamount" required="" inputmode="numeric"></div>
                             </div>
                         </div>
                         <hr>
-                        <p class="text-center body-p mb-0">Wallet Address</p>
-                        <p class="text-center bg-yellow pt-2 pb-2"><strong>BANK TRANSFER</strong>: CapitalNest Nepal Account</p>
-                        <div class="text-center"><small class="d-block mb-2">Pay the amount in NPR to the account details above or scan the QR code below.</small><img class="img-fluid" src="../assets/img/qrcode.png" width="65%"></div>
+                        <p class="text-center body-p mb-0">Payment Details</p>
+                        <p id="paymentWalletLabel" class="text-center bg-yellow pt-2 pb-2"><strong>eSewa</strong>: 98XXXXXXXX</p>
+                        <div class="text-center"><small id="paymentInstruction" class="d-block mb-2">Pay the amount in NPR using the selected eSewa QR below.</small><img id="paymentQrImage" class="img-fluid" src="../assets/img/ESEWA.jpg" width="65%"></div>
                         <div class="form-group mt-4 text-center"><button class="btn btn3" type="submit">Confirm Deposit</button></div>
                     </form>
                 </div>
@@ -589,6 +589,21 @@
                         <div class="form-row">
                             <div class="col text-center"><a class="mr-3 social-link" href="#"><i class="fab fa-facebook"></i></a><a class="social-link" href="#"><i class="fab fa-twitter"></i></a></div>
                         </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" role="dialog" tabindex="-1" id="makewithdrawal">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content"><div class="modal-header">
+    <h4 class="modal-title">Make Withdrawal</h4><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true"><i data-toggle="tooltip" class="la la-close"></i></span></button></div>
+                <div class="modal-body">
+                    <form id="withdrawalFormDashboard">
+                        <div class="form-group"><label for="withdrawMethod">Choose Withdrawal Method</label><select class="form-control" id="withdrawMethod" required=""><optgroup label="Supported Methods"><option value="ESEWA" selected="">eSewa</option><option value="KHALTI">Khalti</option></optgroup></select></div>
+                        <div class="form-group"><label for="withdrawAccountDetails">Account Details / Phone</label><input class="form-control" type="text" id="withdrawAccountDetails" placeholder="e.g., 9850000000" required=""></div>
+                        <div class="form-group"><label for="withdrawAmount">Amount To Withdraw (NPR)</label><input class="form-control" type="number" id="withdrawAmount" min="2000" placeholder="Minimum NPR 2,000" required=""></div>
+                        <div class="form-group mt-4"><button class="btn btn3" type="submit">Request Withdrawal</button></div>
                     </form>
                 </div>
             </div>
@@ -764,7 +779,7 @@
                     <h1 id="welcomeUser" class="dashboard-heading-h ml-3">Welcome</h1>
                 </div>
             </div>
-            <div class="col text-right mobile-center"><a class="btn btn1 mr-4" role="button" href="#makeinvestment" data-target="#makeinvestment" data-toggle="modal">Make Investment</a><a class="btn btn3" role="button" href="#fundwallet" data-target="#fundwallet" data-toggle="modal">Fund Wallet</a></div>
+            <div class="col text-right mobile-center"><a class="btn btn1" role="button" href="#makeinvestment" data-target="#makeinvestment" data-toggle="modal">Make Investment</a></div>
         </div>
         <div class="row mt-5">
             <div class="col-md-8 mb-3">
@@ -891,13 +906,21 @@
                     </div>
                     <h6 class="dashboard-h mb-4">Affiliate</h6>
                     <form>
-                        <div class="form-group"><label>Affiliate Link</label><input id="affiliateLinkInput" class="form-control" type="text" readonly value=""></div>
+                        <div class="form-group">
+                            <label>Affiliate Link</label>
+                            <div class="input-group">
+                                <input id="affiliateLinkInput" class="form-control" type="text" readonly value="">
+                                <div class="input-group-append">
+                                    <button id="copyReferralLinkBtn" class="btn btn-primary" type="button">Copy</button>
+                                </div>
+                            </div>
+                        </div>
                     </form>
                     <hr><a id="invitedCount" class="float-right" href="#">0</a>
                     <h6 class="dashboard-h">Invited</h6>
-                    <div style="border: 1px dotted #000;">
+                    <div style="border: 1px dotted #000; padding: 10px;">
                         <h5 class="text-center">Total Affiliate Bonus</h5>
-                        <h5 id="affiliateBonusValue" class="text-center">$0</h5>
+                        <h5 id="affiliateBonusValue" class="text-center">NPR 0</h5>
                     </div>
                 </div>
             </div>
@@ -912,6 +935,36 @@
     <script src="https://unpkg.com/@bootstrapstudio/bootstrap-better-nav/dist/bootstrap-better-nav.min.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/typed.js@2.0.9"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.4.1/jquery.easing.min.js"></script>
+    <script>
+        const paymentQrMap = {
+            'eSewa': {
+                label: 'eSewa: 9767048356',
+                image: '../assets/img/ESEWA.jpg',
+                instruction: 'Pay the amount in NPR using the selected eSewa QR below.'
+            },
+            'Khalti': {
+                label: 'Khalti: 9713555399',
+                image: '../assets/img/KHALTI.jpg',
+                instruction: 'Pay the amount in NPR using the selected Khalti QR below.'
+            },
+            'FonePay': {
+                label: 'FonePay: 98XXXXXXXX',
+                image: '../assets/img/FONEYPAY.jpg',
+                instruction: 'Pay the amount in NPR using the selected FonePay QR below.'
+            }
+        };
+
+        function updatePaymentPreview() {
+            const selected = $('#paymenttype').val() || 'eSewa';
+            const config = paymentQrMap[selected] || paymentQrMap['eSewa'];
+            $('#paymentWalletLabel').html(`<strong>${selected}</strong>: ${config.label.replace(/^.*?:\s*/, '')}`);
+            $('#paymentInstruction').text(config.instruction);
+            $('#paymentQrImage').attr('src', config.image);
+        }
+
+        $('#paymenttype').on('change', updatePaymentPreview);
+        updatePaymentPreview();
+    </script>
     <script src="../assets/js/script.min.js"></script>
     <script src="../assets/js/live-financial-balance.js"></script>
     <script src="../assets/js/realtime-balance-sync.js"></script>
@@ -969,12 +1022,53 @@
         return `${prefix}${randomPart}`;
     }
 
+    function buildReferralShareUrl(referralCode) {
+        const baseOrigin = (window.location && window.location.origin && window.location.origin !== 'null')
+            ? window.location.origin
+            : 'https://capitalnestnepal.com';
+
+        const referralPath = referralCode
+            ? `/register.html?ref=${encodeURIComponent(referralCode)}`
+            : '/register.html';
+
+        return `${baseOrigin}${referralPath}`;
+    }
+
+    async function copyReferralLink() {
+        const affiliateLinkInput = document.getElementById('affiliateLinkInput');
+        if (!affiliateLinkInput) return;
+
+        const shareUrl = affiliateLinkInput.value || buildReferralShareUrl('');
+        try {
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(shareUrl);
+            } else {
+                affiliateLinkInput.focus();
+                affiliateLinkInput.select();
+                document.execCommand('copy');
+            }
+            const button = document.getElementById('copyReferralLinkBtn');
+            if (button) {
+                const originalText = button.textContent;
+                button.textContent = 'Copied';
+                setTimeout(() => { button.textContent = originalText; }, 1200);
+            }
+        } catch (error) {
+            console.warn('Referral link copy failed:', error);
+        }
+    }
+
     async function loadAffiliateData(supabase, user) {
         const affiliateLinkInput = document.getElementById('affiliateLinkInput');
         const invitedCountEl = document.getElementById('invitedCount');
         const affiliateBonusEl = document.getElementById('affiliateBonusValue');
+        const copyButton = document.getElementById('copyReferralLinkBtn');
 
         if (!affiliateLinkInput || !invitedCountEl || !affiliateBonusEl) return;
+
+        if (copyButton) {
+            copyButton.addEventListener('click', copyReferralLink);
+        }
 
         try {
             let { data: profileData, error: profileError } = await supabase
@@ -1003,6 +1097,7 @@
 
                 if (profileUpsertError) {
                     console.warn('Referral code generation failed:', profileUpsertError);
+                    referralCode = '';
                 } else {
                     profileData = {
                         invitation_code: referralCode,
@@ -1013,9 +1108,7 @@
                 }
             }
 
-            const shareUrl = referralCode
-                ? `${window.location.origin}/register.html?ref=${encodeURIComponent(referralCode)}`
-                : `${window.location.origin}/register.html`;
+            const shareUrl = buildReferralShareUrl(referralCode);
             affiliateLinkInput.value = shareUrl;
 
             const { data: historyData = [], error: historyError } = await supabase
@@ -1050,7 +1143,7 @@
             affiliateBonusEl.textContent = formatCurrency(totalBonus);
         } catch (error) {
             console.warn('Affiliate data could not be loaded:', error);
-            affiliateLinkInput.value = `${window.location.origin}/register.html`;
+            affiliateLinkInput.value = buildReferralShareUrl('');
             invitedCountEl.textContent = '0';
             affiliateBonusEl.textContent = formatCurrency(0);
         }
@@ -1060,130 +1153,149 @@
         const supabase = window.CAPITALNEST_SUPABASE_CLIENT;
         if (!supabase) return;
 
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-        if (userError || !user) {
-            window.location.href = '../login.html';
-            return;
-        }
+        const investmentTableBody = document.getElementById('investmentTableBody');
+        const renderEmptyInvestmentState = () => {
+            if (investmentTableBody) {
+                investmentTableBody.innerHTML = '<tr class="table-row-empty text-center"><td colspan="5">No Investments Found</td></tr>';
+            }
+        };
 
-        // Initialize real-time sync for this user
-        if (window.BALANCE_SYNC) {
-            await window.BALANCE_SYNC.init(user.id);
-        }
+        const fallbackTimer = window.setTimeout(() => {
+            if (investmentTableBody && investmentTableBody.textContent.includes('Loading investments...')) {
+                renderEmptyInvestmentState();
+            }
+        }, 8000);
 
-        const emailName = (user.email || 'User').split('@')[0];
-        const displayName = (user.user_metadata && (user.user_metadata.full_name || user.user_metadata.name)) || emailName;
-        const welcomeEl = document.getElementById('welcomeUser');
-        if (welcomeEl) {
-            welcomeEl.textContent = 'Welcome, ' + (displayName || 'User');
-        }
+        try {
+            const { data: { user }, error: userError } = await supabase.auth.getUser();
+            if (userError || !user) {
+                window.location.href = '../login.html';
+                return;
+            }
 
-        await loadAffiliateData(supabase, user);
+            // Initialize real-time sync for this user
+            if (window.BALANCE_SYNC) {
+                await window.BALANCE_SYNC.init(user.id);
+            }
 
-        if (window.CAPITALNEST_FINANCE) {
-            await window.CAPITALNEST_FINANCE.refreshFinancialSummary();
-        }
+            const emailName = (user.email || 'User').split('@')[0];
+            const displayName = (user.user_metadata && (user.user_metadata.full_name || user.user_metadata.name)) || emailName;
+            const welcomeEl = document.getElementById('welcomeUser');
+            if (welcomeEl) {
+                welcomeEl.textContent = 'Welcome, ' + (displayName || 'User');
+            }
 
-        const [transactionsResult, investmentsResult] = await Promise.all([
-            supabase
-                .from('transactions')
-                .select('*')
-                .eq('user_id', user.id)
-                .order('created_at', { ascending: false })
-                .limit(20),
-            supabase
-                .from('user_investments')
-                .select('*')
-                .eq('user_id', user.id)
-                .order('created_at', { ascending: false })
-        ]);
+            await loadAffiliateData(supabase, user);
 
-        const transactions = transactionsResult.data || [];
-        const investmentsFromTable = investmentsResult.data || [];
-        const investmentTransactions = transactions.filter((transaction) => (transaction.type || '').toLowerCase() === 'investment');
-        const investments = investmentsFromTable.length
-            ? investmentsFromTable
-            : investmentTransactions.map((transaction) => ({
-                id: transaction.id,
-                user_id: transaction.user_id,
-                plan_name: transaction.note ? transaction.note.split(':')[1]?.trim() || 'Investment' : 'Investment',
-                amount: Number(transaction.amount || 0),
-                duration_days: 0,
-                status: transaction.status || 'active',
-                created_at: transaction.created_at
-            }));
+            if (window.CAPITALNEST_FINANCE) {
+                await window.CAPITALNEST_FINANCE.refreshFinancialSummary();
+            }
 
-        let totalDeposits = 0;
-        let totalWithdrawals = 0;
-        let totalInvestments = 0;
+            const [transactionsResult, investmentsResult] = await Promise.all([
+                supabase
+                    .from('transactions')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .order('created_at', { ascending: false })
+                    .limit(20),
+                supabase
+                    .from('user_investments')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .order('created_at', { ascending: false })
+            ]);
 
-        transactions.forEach((transaction) => {
-            const amount = Number(transaction.amount || 0);
-            const type = (transaction.type || '').toLowerCase();
-            if (['deposit', 'welcome_bonus', 'bonus', 'refund'].includes(type)) totalDeposits += amount;
-            if (type === 'withdrawal') totalWithdrawals += amount;
-            if (type === 'investment') totalInvestments += amount;
-        });
+            const transactions = Array.isArray(transactionsResult.data) ? transactionsResult.data : [];
+            const investmentsFromTable = Array.isArray(investmentsResult.data) ? investmentsResult.data : [];
+            const investmentTransactions = transactions.filter((transaction) => (transaction.type || '').toLowerCase() === 'investment');
+            const investments = investmentsFromTable.length
+                ? investmentsFromTable
+                : investmentTransactions.map((transaction) => ({
+                    id: transaction.id,
+                    user_id: transaction.user_id,
+                    plan_name: transaction.note ? transaction.note.split(':')[1]?.trim() || 'Investment' : 'Investment',
+                    amount: Number(transaction.amount || 0),
+                    duration_days: 0,
+                    status: transaction.status || 'active',
+                    created_at: transaction.created_at
+                }));
 
-        investments
-            .filter((investment) => !['pending', 'rejected', 'failed'].includes((investment.status || '').toLowerCase()))
-            .forEach((investment) => {
-                totalInvestments += Number(investment.amount || 0);
+            let totalDeposits = 0;
+            let totalWithdrawals = 0;
+            let totalInvestments = 0;
+
+            transactions.forEach((transaction) => {
+                const amount = Number(transaction.amount || 0);
+                const type = (transaction.type || '').toLowerCase();
+                if (['deposit', 'welcome_bonus', 'bonus', 'refund'].includes(type)) totalDeposits += amount;
+                if (type === 'withdrawal') totalWithdrawals += amount;
+                if (type === 'investment') totalInvestments += amount;
             });
 
-        if (window.CAPITALNEST_FINANCE) {
-            Promise.resolve(window.CAPITALNEST_FINANCE.refreshFinancialSummary()).catch(() => {});
-        }
+            investments
+                .filter((investment) => !['pending', 'rejected', 'failed'].includes((investment.status || '').toLowerCase()))
+                .forEach((investment) => {
+                    totalInvestments += Number(investment.amount || 0);
+                });
 
-        const transactionHistoryList = document.getElementById('transactionHistoryList');
-        if (transactionHistoryList) {
-            if (!transactions.length) {
-                transactionHistoryList.innerHTML = '<div class="card card1 mb-3"><div class="card-body"><p class="mb-0">No transactions found.</p></div></div>';
-            } else {
-                transactionHistoryList.innerHTML = transactions.slice(0, 5).map((transaction) => {
-                    const amount = Number(transaction.amount || 0);
-                    const type = (transaction.type || 'transaction').toLowerCase();
-                    const isIncoming = ['deposit', 'welcome_bonus', 'bonus', 'refund'].includes(type);
-                    const label = transaction.note || transaction.type || 'Transaction';
-                    const amountClass = isIncoming ? 'deposit' : 'withdrawal';
-                    const icon = isIncoming
-                        ? '<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-arrow-up-circle-fill green-up"><path fill-rule="evenodd" d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-7.5 3.5a.5.5 0 0 1-1 0V5.707L5.354 7.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 5.707V11.5z"></path></svg>'
-                        : '<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-arrow-down-circle-fill red-down"><path fill-rule="evenodd" d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8.5 4.5a.5.5 0 0 0-1 0v5.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V4.5z"></path></svg>';
-                    return `
-                        <div class="card card1 mb-3">
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-1">${icon}</div>
-                                    <div class="col-md-6">
-                                        <h6 class="text-nowrap text-truncate mb-0 trx-heading">${label}</h6>
-                                        <span class="date-span">${formatDate(transaction.created_at)}</span>
-                                    </div>
-                                    <div class="col">
-                                        <p class="text-nowrap ${amountClass}">${isIncoming ? '+' : '-'}${formatCurrency(amount)}</p>
+            if (window.CAPITALNEST_FINANCE) {
+                Promise.resolve(window.CAPITALNEST_FINANCE.refreshFinancialSummary()).catch(() => {});
+            }
+
+            const transactionHistoryList = document.getElementById('transactionHistoryList');
+            if (transactionHistoryList) {
+                if (!transactions.length) {
+                    transactionHistoryList.innerHTML = '<div class="card card1 mb-3"><div class="card-body"><p class="mb-0">No transactions found.</p></div></div>';
+                } else {
+                    transactionHistoryList.innerHTML = transactions.slice(0, 5).map((transaction) => {
+                        const amount = Number(transaction.amount || 0);
+                        const type = (transaction.type || 'transaction').toLowerCase();
+                        const isIncoming = ['deposit', 'welcome_bonus', 'bonus', 'refund'].includes(type);
+                        const label = transaction.note || transaction.type || 'Transaction';
+                        const amountClass = isIncoming ? 'deposit' : 'withdrawal';
+                        const icon = isIncoming
+                            ? '<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-arrow-up-circle-fill green-up"><path fill-rule="evenodd" d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-7.5 3.5a.5.5 0 0 1-1 0V5.707L5.354 7.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 5.707V11.5z"></path></svg>'
+                            : '<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-arrow-down-circle-fill red-down"><path fill-rule="evenodd" d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8.5 4.5a.5.5 0 0 0-1 0v5.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V4.5z"></path></svg>';
+                        return `
+                            <div class="card card1 mb-3">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-1">${icon}</div>
+                                        <div class="col-md-6">
+                                            <h6 class="text-nowrap text-truncate mb-0 trx-heading">${label}</h6>
+                                            <span class="date-span">${formatDate(transaction.created_at)}</span>
+                                        </div>
+                                        <div class="col">
+                                            <p class="text-nowrap ${amountClass}">${isIncoming ? '+' : '-'}${formatCurrency(amount)}</p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    `;
-                }).join('');
+                        `;
+                    }).join('');
+                }
             }
-        }
 
-        const investmentTableBody = document.getElementById('investmentTableBody');
-        if (investmentTableBody) {
-            if (!investments.length) {
-                investmentTableBody.innerHTML = '<tr class="table-row-empty text-center"><td colspan="5">No Investments Found</td></tr>';
-            } else {
-                investmentTableBody.innerHTML = investments.slice(0, 5).map((investment) => `
-                    <tr class="table-row">
-                        <td>${formatDate(investment.created_at)}</td>
-                        <td class="green">${formatCurrency(investment.amount)}</td>
-                        <td>${investment.status || 'active'}</td>
-                        <td class="green">${investment.duration_days || 0} days</td>
-                        <td class="green"><a class="btn btn-sm topbtn" role="button" href="top.html">Top Up</a><a class="ml-2" href="#">View More</a></td>
-                    </tr>
-                `).join('');
+            if (investmentTableBody) {
+                if (!investments.length) {
+                    renderEmptyInvestmentState();
+                } else {
+                    investmentTableBody.innerHTML = investments.slice(0, 5).map((investment) => `
+                        <tr class="table-row">
+                            <td>${formatDate(investment.created_at)}</td>
+                            <td class="green">${formatCurrency(investment.amount)}</td>
+                            <td>${investment.status || 'active'}</td>
+                            <td class="green">${investment.duration_days || 0} days</td>
+                            <td class="green"><a class="btn btn-sm topbtn" role="button" href="top.html">Top Up</a><a class="ml-2" href="#">View More</a></td>
+                        </tr>
+                    `).join('');
+                }
             }
+        } catch (error) {
+            console.warn('Dashboard data load failed:', error);
+            renderEmptyInvestmentState();
+        } finally {
+            window.clearTimeout(fallbackTimer);
         }
     }
 
@@ -1223,6 +1335,68 @@
         $('.invest-radio').on('change', function() {
             $('.plan-card').removeClass('active');
             $(this).siblings('.plan-card').addClass('active');
+        });
+
+        $('#withdrawalFormDashboard').on('submit', async function(e) {
+            e.preventDefault();
+            const supabase = window.CAPITALNEST_SUPABASE_CLIENT;
+            if (!supabase) {
+                alert('Supabase client not available. Please refresh the page.');
+                return;
+            }
+
+            const { data: { user }, error: userError } = await supabase.auth.getUser();
+            if (userError || !user) {
+                alert('Please log in to make a withdrawal.');
+                window.location.href = '../login.html';
+                return;
+            }
+
+            const method = $('#withdrawMethod').val().toUpperCase();
+            const accountDetails = $('#withdrawAccountDetails').val().trim();
+            const amount = Number($('#withdrawAmount').val() || 0);
+
+            if (!method) {
+                alert('Please select a withdrawal method.');
+                return;
+            }
+            if (!accountDetails) {
+                alert('Please enter your account details or phone number.');
+                return;
+            }
+            if (amount < 2000) {
+                alert('Minimum withdrawal amount is NPR 2,000.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/withdrawals', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${user.id}`
+                    },
+                    body: JSON.stringify({
+                        method: method,
+                        accountDetails: accountDetails,
+                        amount: amount
+                    })
+                });
+
+                const result = await response.json();
+                if (!response.ok) {
+                    alert(`Error: ${result.message || 'Unable to process withdrawal request.'}`);
+                    return;
+                }
+
+                alert('✅ Withdrawal request submitted successfully!\nStatus: Pending admin review');
+                $('#makewithdrawal').modal('hide');
+                $('#withdrawalFormDashboard')[0].reset();
+                await loadDashboardData();
+            } catch (error) {
+                console.error('Withdrawal submission error:', error);
+                alert('Error: Unable to process withdrawal. Please try again.');
+            }
         });
 
         $('#investform').on('submit', function(e) {

@@ -44,21 +44,9 @@ class KhaltiProvider extends WithdrawalProvider {
   }
 }
 
-class FonepayQrProvider extends WithdrawalProvider {
-  constructor() {
-    super('FONEPAY_QR');
-  }
-
-  async createWithdrawal(payload) {
-    if (!payload?.qrImagePath) throw new Error('INVALID_QR_IMAGE');
-    return { ok: true, status: 'PENDING', provider: this.name, reference: `FP-${Date.now()}` };
-  }
-}
-
 const providers = {
   ESEWA: new EsewaProvider(),
   KHALTI: new KhaltiProvider(),
-  FONEPAY_QR: new FonepayQrProvider(),
 };
 
 function getProvider(method) {
@@ -69,7 +57,6 @@ module.exports = {
   WithdrawalProvider,
   EsewaProvider,
   KhaltiProvider,
-  FonepayQrProvider,
   getProvider,
   MIN_WITHDRAWAL_AMOUNT,
 };

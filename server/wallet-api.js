@@ -11,6 +11,8 @@ const {
   canTransitionWithdrawalStatus,
   calculateInvestmentReturn,
   calculateReferralRewards,
+  validateWalletName,
+  validateWalletNumber,
 } = require('./financial-logic');
 
 const router = express.Router();
@@ -119,19 +121,164 @@ router.get('/wallet/transactions', requireAuth, async (req, res) => {
   }
 });
 
+router.get('/deposits', requireAuth, async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('deposits')
+      .select('*')
+      .eq('user_id', req.user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ error: 'DEPOSITS_ERROR', message: 'Unable to load deposits.' });
+  }
+});
+
+router.post('/deposits', requireAuth, upload.single('proofFile'), async (req, res) => {
+  try {
+    const amount = Number(req.body.amount || 0);
+    const method = String(req.body.paymentMethod || req.body.method || 'ESEWA').toUpperCase();
+    const referenceId = String(req.body.referenceId || '').trim();
+    const userId = req.user.id;
+
+    if (!amount || amount <= 0) {
+      return respondError(res, 'INVALID_AMOUNT', 'A valid deposit amount is required.', 400);
+    }
+
+    if (!['ESEWA', 'KHALTI'].includes(method)) {
+      return respondError(res, 'INVALID_PAYMENT_METHOD', 'Unsupported payment method.', 400);
+    }
+
+    let proofPath = req.body.paymentProofPath || null;
+    if (req.file) {
+      proofPath = `payment-proofs/${userId}/${req.file.filename}`;
+    }
+
+    const { data: deposit, error: insertError } = await supabase
+      .from('deposits')
+      .insert({
+        user_id: userId,
+        amount,
+        payment_method: method,
+        reference_id: referenceId || null,
+        payment_proof_path: proofPath,
+        status: 'PENDING',
+      })
+      .select()
+      .single();
+
+    if (insertError) throw insertError;
+
+    res.status(201).json({
+      success: true,
+      data: deposit,
+      message: 'Deposit submitted successfully and is pending admin approval.',
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'DEPOSIT_SUBMIT_ERROR', message: 'Unable to submit deposit.' });
+  }
+});
+
+router.get('/admin/deposits', requireAuth, async (req, res) => {
+  try {
+    const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', req.user.id).single();
+    if (!profile?.is_admin) {
+      return respondError(res, 'FORBIDDEN', 'Admin access required.', 403);
+    }
+
+    const { data, error } = await supabase
+      .from('deposits')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ error: 'ADMIN_DEPOSITS_ERROR', message: 'Unable to load deposit approvals.' });
+  }
+});
+
+router.post('/admin/deposits/:id/approve', requireAuth, async (req, res) => {
+  try {
+    const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', req.user.id).single();
+    if (!profile?.is_admin) {
+      return respondError(res, 'FORBIDDEN', 'Admin access required.', 403);
+    }
+
+    const { data, error } = await supabase.rpc('approve_deposit', {
+      p_deposit_id: req.params.id,
+      p_admin_id: req.user.id,
+    });
+
+    if (error) throw error;
+    res.json({ success: true, data, message: 'Deposit approved and wallet credited.' });
+  } catch (error) {
+    res.status(500).json({ error: 'APPROVE_DEPOSIT_ERROR', message: 'Unable to approve deposit.' });
+  }
+});
+
+router.post('/admin/deposits/:id/reject', requireAuth, async (req, res) => {
+  try {
+    const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', req.user.id).single();
+    if (!profile?.is_admin) {
+      return respondError(res, 'FORBIDDEN', 'Admin access required.', 403);
+    }
+
+    const rejectionReason = String(req.body.reason || 'Payment proof could not be verified.').trim();
+    const { data, error } = await supabase.rpc('reject_deposit', {
+      p_deposit_id: req.params.id,
+      p_admin_id: req.user.id,
+      p_rejection_reason: rejectionReason,
+    });
+
+    if (error) throw error;
+    res.json({ success: true, data, message: 'Deposit rejected.' });
+  } catch (error) {
+    res.status(500).json({ error: 'REJECT_DEPOSIT_ERROR', message: 'Unable to reject deposit.' });
+  }
+});
+
 router.post('/withdrawals', requireAuth, upload.single('qrImage'), async (req, res) => {
   try {
     const amount = Number(req.body.amount || 0);
     const method = String(req.body.method || '').toUpperCase();
     const accountDetails = String(req.body.accountDetails || '').trim();
+    const walletName = String(req.body.walletName || '').trim();
+    const walletNumber = String(req.body.walletNumber || '').trim();
     const userId = req.user.id;
 
-    if (!['ESEWA', 'KHALTI', 'FONEPAY_QR'].includes(method)) {
+    if (!['ESEWA', 'KHALTI'].includes(method)) {
       return respondError(res, 'INVALID_WITHDRAWAL_METHOD', 'Unsupported withdrawal method.', 400);
     }
 
     if (amount < MIN_WITHDRAWAL_AMOUNT) {
       return respondError(res, 'MIN_WITHDRAWAL_NOT_MET', `Minimum withdrawal amount is NPR ${MIN_WITHDRAWAL_AMOUNT.toLocaleString('en-US')}.`, 400);
+    }
+
+    // Validate wallet name
+    if (!walletName || walletName.length < 2) {
+      return respondError(res, 'INVALID_WALLET_NAME', 'Wallet holder name must be at least 2 characters.', 400);
+    }
+    if (walletName.length > 50) {
+      return respondError(res, 'INVALID_WALLET_NAME', 'Wallet holder name cannot exceed 50 characters.', 400);
+    }
+
+    // Validate wallet number based on method
+    if (!walletNumber) {
+      return respondError(res, 'INVALID_WALLET_NUMBER', 'Wallet number/account is required.', 400);
+    }
+
+    if (method === 'ESEWA') {
+      if (!/^\d{10}$/.test(walletNumber)) {
+        return respondError(res, 'INVALID_ESEWA_NUMBER', 'eSewa account must be exactly 10 digits.', 400);
+      }
+    } else if (method === 'KHALTI') {
+      const isValidKhalti = /^\d{10}$/.test(walletNumber) || /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(walletNumber);
+      if (!isValidKhalti) {
+        return respondError(res, 'INVALID_KHALTI_NUMBER', 'Khalti account must be 10 digits or valid email.', 400);
+      }
     }
 
     const summary = await getWalletSummary(userId);
@@ -151,15 +298,7 @@ router.post('/withdrawals', requireAuth, upload.single('qrImage'), async (req, r
       return respondError(res, 'WITHDRAWAL_ALREADY_PENDING', 'You already have a pending withdrawal.', 409);
     }
 
-    let qrFilePath = null;
-    if (method === 'FONEPAY_QR') {
-      if (!req.file) {
-        return respondError(res, 'INVALID_QR_IMAGE', 'QR image is required for Fonepay QR withdrawals.', 400);
-      }
-      qrFilePath = `/uploads/${req.file.filename}`;
-    }
-
-    if (method !== 'FONEPAY_QR' && !accountDetails) {
+    if (!accountDetails) {
       return respondError(res, 'INVALID_ACCOUNT', 'Account details are required for this method.', 400);
     }
 
@@ -170,7 +309,9 @@ router.post('/withdrawals', requireAuth, upload.single('qrImage'), async (req, r
         amount,
         method,
         account_details: accountDetails || null,
-        qr_image_path: qrFilePath,
+        wallet_name: walletName,
+        wallet_number: walletNumber,
+        verification_status: 'PENDING',
         status: 'PENDING',
         request_reference: `WD-${Date.now()}`,
         created_at: new Date().toISOString(),
@@ -215,6 +356,74 @@ router.get('/withdrawals', requireAuth, async (req, res) => {
     res.json({ success: true, data });
   } catch (error) {
     res.status(500).json({ error: 'WITHDRAWALS_ERROR', message: 'Unable to load withdrawals.' });
+  }
+});
+
+router.post('/add-wallet-method', requireAuth, async (req, res) => {
+  try {
+    const method = String(req.body.method || '').toUpperCase();
+    const walletName = String(req.body.walletName || '').trim();
+    const walletNumber = String(req.body.walletNumber || '').trim();
+    const userId = req.user.id;
+
+    // Validate method
+    if (!['ESEWA', 'KHALTI'].includes(method)) {
+      return respondError(res, 'INVALID_METHOD', 'Unsupported payment method.', 400);
+    }
+
+    // Validate wallet name
+    if (!walletName || walletName.length < 2) {
+      return respondError(res, 'INVALID_WALLET_NAME', 'Wallet holder name must be at least 2 characters.', 400);
+    }
+    if (walletName.length > 50) {
+      return respondError(res, 'INVALID_WALLET_NAME', 'Wallet holder name cannot exceed 50 characters.', 400);
+    }
+
+    // Validate wallet number based on method
+    if (!walletNumber) {
+      return respondError(res, 'INVALID_WALLET_NUMBER', 'Wallet number/account is required.', 400);
+    }
+
+    if (method === 'ESEWA') {
+      if (!/^\d{10}$/.test(walletNumber)) {
+        return respondError(res, 'INVALID_ESEWA_NUMBER', 'eSewa account must be exactly 10 digits.', 400);
+      }
+    } else if (method === 'KHALTI') {
+      const isValidPhone = /^\d{10}$/.test(walletNumber);
+      const isValidEmail = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(walletNumber);
+      if (!isValidPhone && !isValidEmail) {
+        return respondError(res, 'INVALID_KHALTI_NUMBER', 'Khalti account must be 10 digits or valid email.', 400);
+      }
+    }
+
+    // Store as a transaction note for now (can create saved_wallet_methods table later)
+    const { data: wallet, error: insertError } = await supabase
+      .from('wallet_transactions')
+      .insert({
+        user_id: userId,
+        type: 'WALLET_METHOD_ADDED',
+        amount: 0,
+        status: 'COMPLETED',
+        payment_method: method,
+        note: `Added wallet: ${walletName} (${walletNumber})`,
+        created_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (insertError) throw insertError;
+
+    res.status(201).json({
+      success: true,
+      data: {
+        method,
+        walletName,
+        walletNumber: walletNumber.slice(-4).padStart(walletNumber.length, '*'),
+      },
+      message: 'Wallet method added successfully.',
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'ADD_WALLET_ERROR', message: 'Unable to add wallet method.' });
   }
 });
 

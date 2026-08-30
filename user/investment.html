@@ -540,6 +540,33 @@
             </div>
             <div class="col-md-12 mb-3">
                 <div class="card-bg">
+                    <div class="card card1">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <span class="mb-3">Active Package</span>
+                                    <h3 id="activePackageName" class="dashboard-heading-h mb-1">No active package</h3>
+                                    <p id="activePackageMeta" class="mb-0 body-p">No active investment is currently running.</p>
+                                </div>
+                                <div class="col-md-2">
+                                    <span class="mb-3">Amount</span>
+                                    <h4 id="activePackageAmount" class="mb-0">NPR 0</h4>
+                                </div>
+                                <div class="col-md-2">
+                                    <span class="mb-3">Remaining Days</span>
+                                    <h4 id="activePackageDays" class="mb-0">0 days</h4>
+                                </div>
+                                <div class="col-md-2">
+                                    <span class="mb-3">Maturity</span>
+                                    <h4 id="activePackageDate" class="mb-0">—</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-12 mb-3">
+                <div class="card-bg">
                     <div class="table-responsive table-borderless text-nowrap">
                         <table class="table table-bordered table-bordered display responsive" id="table2" style="width: 100%;">
                             <thead class="table-header">
@@ -602,6 +629,67 @@
             return date.toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
         }
 
+        function calculateRemainingDays(startDate, durationDays) {
+            if (!startDate || !Number(durationDays)) return 0;
+            const start = new Date(startDate);
+            if (Number.isNaN(start.getTime())) return 0;
+            const totalMilliseconds = Number(durationDays) * 24 * 60 * 60 * 1000;
+            const elapsed = Date.now() - start.getTime();
+            return Math.max(0, Math.ceil((totalMilliseconds - elapsed) / (24 * 60 * 60 * 1000)));
+        }
+
+        function getInvestmentAmount(item) {
+            return Number(item.amount ?? item.investment_amount ?? item.total_amount ?? 0);
+        }
+
+        function getPlanName(item) {
+            const raw = item.plan_name || item.investment_plan || item.name || 'Investment';
+            return String(raw).trim() || 'Investment';
+        }
+
+        function renderActivePackage(activeInvestment, maturedTotal, activeTotal, walletBalance) {
+            const packageNameEl = document.getElementById('activePackageName');
+            const packageMetaEl = document.getElementById('activePackageMeta');
+            const packageAmountEl = document.getElementById('activePackageAmount');
+            const packageDaysEl = document.getElementById('activePackageDays');
+            const packageDateEl = document.getElementById('activePackageDate');
+
+            if (!activeInvestment) {
+                if (packageNameEl) packageNameEl.textContent = 'No active package';
+                if (packageMetaEl) packageMetaEl.textContent = maturedTotal > 0
+                    ? `Completed investment total: ${formatCurrency(maturedTotal)}. No active package currently running.`
+                    : 'No active investment is currently running.';
+                if (packageAmountEl) packageAmountEl.textContent = formatCurrency(0);
+                if (packageDaysEl) packageDaysEl.textContent = '0 days';
+                if (packageDateEl) packageDateEl.textContent = '—';
+                return;
+            }
+
+            const remainingDays = calculateRemainingDays(activeInvestment.created_at, activeInvestment.duration_days || activeInvestment.duration || 0);
+            const endDate = new Date(new Date(activeInvestment.created_at).getTime() + ((activeInvestment.duration_days || activeInvestment.duration || 0) * 24 * 60 * 60 * 1000));
+
+            if (packageNameEl) packageNameEl.textContent = getPlanName(activeInvestment);
+            if (packageMetaEl) packageMetaEl.textContent = `Status: ${String(activeInvestment.status || 'active').toUpperCase()} · Active investment value`;
+            if (packageAmountEl) packageAmountEl.textContent = formatCurrency(getInvestmentAmount(activeInvestment));
+            if (packageDaysEl) packageDaysEl.textContent = `${remainingDays} day${remainingDays === 1 ? '' : 's'}`;
+            if (packageDateEl) packageDateEl.textContent = formatDate(endDate.toISOString());
+
+            const investmentTotalEl = document.getElementById('investmentInvestedValue');
+            if (investmentTotalEl) {
+                investmentTotalEl.textContent = formatCurrency(activeTotal);
+            }
+
+            const walletBalanceEl = document.getElementById('investmentWalletBalanceValue');
+            if (walletBalanceEl && Number.isFinite(walletBalance)) {
+                walletBalanceEl.textContent = formatCurrency(walletBalance);
+            }
+
+            const withdrawnEl = document.getElementById('investmentWithdrawnValue');
+            if (withdrawnEl) {
+                withdrawnEl.textContent = formatCurrency(maturedTotal);
+            }
+        }
+
         async function loadInvestmentPageData() {
             const supabase = window.CAPITALNEST_SUPABASE_CLIENT;
             if (!supabase) return;
@@ -619,50 +707,106 @@
 
             window.__investmentRealtimeChannel = supabase.channel('investment-status-updates');
             window.__investmentRealtimeChannel
-                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'investments', filter: `user_id=eq.${user.id}` }, () => {
+                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'user_investments', filter: `user_id=eq.${user.id}` }, () => {
                     loadInvestmentPageData();
                 })
-                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'investments', filter: `user_id=eq.${user.id}` }, () => {
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'user_investments', filter: `user_id=eq.${user.id}` }, () => {
                     loadInvestmentPageData();
                 })
                 .subscribe();
 
-            const [{ data: transactions = [] }, { data: investments = [] }] = await Promise.all([
+            const [{ data: transactions = [] }, { data: userInvestments = [] }, { data: legacyInvestments = [] }] = await Promise.all([
                 supabase.from('transactions').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+                supabase.from('user_investments').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
                 supabase.from('investments').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
             ]);
+
+            const allInvestments = [...userInvestments, ...legacyInvestments].filter(Boolean);
+            const activeInvestments = allInvestments.filter((item) => {
+                const status = String(item.status || 'active').toLowerCase();
+                if (['pending', 'rejected', 'failed'].includes(status)) return false;
+                const durationDays = Number(item.duration_days ?? item.duration ?? 0);
+                const createdAt = item.created_at || item.started_at || item.date;
+                if (!createdAt) return true;
+                return calculateRemainingDays(createdAt, durationDays) > 0;
+            });
+
+            const maturedInvestments = allInvestments.filter((item) => {
+                const status = String(item.status || 'active').toLowerCase();
+                if (['pending', 'rejected', 'failed'].includes(status)) return false;
+                const durationDays = Number(item.duration_days ?? item.duration ?? 0);
+                const createdAt = item.created_at || item.started_at || item.date;
+                if (!createdAt || durationDays === 0) return false;
+                return calculateRemainingDays(createdAt, durationDays) === 0;
+            });
+
+            const activeInvestment = activeInvestments.length ? activeInvestments[0] : null;
+            const activeTotal = activeInvestments.reduce((sum, item) => sum + getInvestmentAmount(item), 0);
+            const maturedTotal = maturedInvestments.reduce((sum, item) => sum + getInvestmentAmount(item), 0);
+            const withdrawnTotal = transactions.reduce((sum, tx) => {
+                const type = String(tx.type || '').toLowerCase();
+                return type === 'withdrawal' ? sum + Number(tx.amount || 0) : sum;
+            }, 0) + maturedTotal;
+
+            const walletBalance = (() => {
+                const balanceRecord = transactions.find((txn) => txn.type === 'wallet_balance');
+                if (balanceRecord && Number(balanceRecord.amount) >= 0) return Number(balanceRecord.amount);
+                const available = Number((transactions.find((txn) => txn.type === 'balance') || {}).amount || 0);
+                return Number.isFinite(available) ? available : 0;
+            })();
+
+            renderActivePackage(activeInvestment, maturedTotal, activeTotal, walletBalance);
 
             if (window.CAPITALNEST_FINANCE) {
                 Promise.resolve(window.CAPITALNEST_FINANCE.refreshFinancialSummary()).catch(() => {});
             }
 
             const investmentTableBody = document.getElementById('investmentTableBody');
-            if (!investments.length) {
+            if (!allInvestments.length) {
                 investmentTableBody.innerHTML = '<tr><td colspan="7">No investments found.</td></tr>';
                 return;
             }
 
-            investmentTableBody.innerHTML = investments.map((item, index) => {
+            investmentTableBody.innerHTML = allInvestments.map((item, index) => {
                 const status = (item.status || 'pending').toLowerCase();
+                const durationDays = Number(item.duration_days ?? item.duration ?? 0);
+                const createdAt = item.created_at || item.started_at || item.date;
+                const remainingDays = createdAt ? calculateRemainingDays(createdAt, durationDays) : 0;
                 const statusMap = {
                     pending: { label: 'Payment verification pending', className: 'text-warning' },
-                    approved: { label: 'Payment approved', className: 'text-success' },
-                    rejected: { label: 'Payment rejected', className: 'text-danger' }
+                    approved: { label: remainingDays > 0 ? 'Active' : 'Matured', className: remainingDays > 0 ? 'text-success' : 'text-primary' },
+                    rejected: { label: 'Payment rejected', className: 'text-danger' },
+                    active: { label: remainingDays > 0 ? 'Active' : 'Matured', className: remainingDays > 0 ? 'text-success' : 'text-primary' }
                 };
-                const state = statusMap[status] || { label: 'Pending', className: 'text-warning' };
+                const state = statusMap[status] || { label: 'Upcoming', className: 'text-warning' };
 
                 return `
                     <tr>
                         <td>${index + 1}</td>
                         <td><a href="investment-details.html">${(item.id || '').slice(0, 10).toUpperCase() || 'INV'}</a></td>
-                        <td><p class="text-nowrap table-p">${formatCurrency(item.investment_amount)}</p></td>
+                        <td><p class="text-nowrap table-p">${formatCurrency(getInvestmentAmount(item))}</p></td>
                         <td><p class="text-nowrap table-p ${state.className}"><strong>${state.label}</strong></p></td>
-                        <td><p class="text-nowrap table-p"><strong>${item.plan_name || 'Plan'}</strong></p></td>
-                        <td><p class="text-nowrap table-p">${formatDate(item.created_at)}</p></td>
-                        <td><a class="btn btn-sm topbtn" role="button" href="top.html">Top Up</a></td>
+                        <td><p class="text-nowrap table-p"><strong>${getPlanName(item)}</strong></p></td>
+                        <td><p class="text-nowrap table-p">${formatDate(createdAt)}</p></td>
+                        <td><p class="text-nowrap table-p">${remainingDays}d left</p></td>
                     </tr>
                 `;
             }).join('');
+
+            const walletBalanceEl = document.getElementById('investmentWalletBalanceValue');
+            if (walletBalanceEl && Number.isFinite(walletBalance)) {
+                walletBalanceEl.textContent = formatCurrency(walletBalance);
+            }
+
+            const investedEl = document.getElementById('investmentInvestedValue');
+            if (investedEl) {
+                investedEl.textContent = formatCurrency(activeTotal);
+            }
+
+            const withdrawnEl = document.getElementById('investmentWithdrawnValue');
+            if (withdrawnEl) {
+                withdrawnEl.textContent = formatCurrency(withdrawnTotal);
+            }
         }
 
         document.addEventListener('DOMContentLoaded', async function () {

@@ -922,15 +922,11 @@
             const checkoutData = JSON.parse(localStorage.getItem('checkoutData') || '{}');
             const amount = parseCurrencyAmount(selectedPlan.amount);
             const planName = selectedPlan.name || 'Starter';
-            const durationDays = getPlanDuration(planName);
-            const customerName = (checkoutData.fullName || '').trim() || (user.user_metadata?.full_name || user.email || 'Customer');
-            const phoneNumber = (checkoutData.phoneNumber || '').trim();
-            const paymentMethod = checkoutData.paymentMethod || 'esewa';
+            const paymentMethod = (checkoutData.paymentMethod || 'esewa').toUpperCase();
 
-            let proofUrl = '';
-            let storagePath = '';
+            let proofPath = null;
             try {
-                console.log('Preparing payment proof upload:', {
+                console.log('Uploading payment proof for deposit approval:', {
                     originalFileName: screenshot.name,
                     originalMimeType: screenshot.type,
                     convertedMimeType: convertedMimeType,
@@ -938,10 +934,10 @@
                     bucketName: 'payment-proofs'
                 });
 
-                storagePath = buildPaymentProofPath(user.id, processedScreenshot);
+                proofPath = buildPaymentProofPath(user.id, processedScreenshot);
                 const { data: uploadData, error: uploadError } = await supabase.storage
                     .from('payment-proofs')
-                    .upload(storagePath, processedScreenshot, {
+                    .upload(proofPath, processedScreenshot, {
                         cacheControl: '3600',
                         upsert: false,
                         contentType: processedScreenshot.type || 'image/png'
@@ -957,101 +953,42 @@
                     finalUploadFileName: processedScreenshot.name,
                     bucketName: 'payment-proofs'
                 });
-
-                const { data: publicUrlData } = supabase.storage
-                    .from('payment-proofs')
-                    .getPublicUrl(uploadData.path);
-
-                proofUrl = publicUrlData?.publicUrl || '';
-                if (!proofUrl) {
-                    throw new Error('Supabase did not return a public URL for the uploaded proof.');
-                }
             } catch (uploadError) {
                 console.error('Payment proof upload failed:', uploadError);
                 const errorMessage = uploadError?.message || 'Unknown Supabase storage error';
-                const storageError = uploadError?.error || uploadError;
-                console.error('Exact Supabase Storage error object:', storageError);
                 alert(`Payment screenshot upload failed.\n\nDetails: ${errorMessage}\n\nFix the Supabase Storage bucket named "payment-proofs" and its policies, then try again.`);
                 return;
             }
 
-            const investmentPayload = {
-                user_id: user.id,
-                email: user.email || 'unknown@example.com',
-                investment_plan: planName,
-                amount: Number(amount || 0),
-                payment_proof_url: proofUrl || storagePath,
-                status: 'pending',
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-                user_email: user.email || 'unknown@example.com',
-                plan_name: planName,
-                investment_amount: Number(amount || 0),
-                payment_proof_path: storagePath,
-                admin_note: null,
-                transaction_ref: null,
-                approved_at: null,
-                rejected_at: null,
-                approved_by: null,
-                rejected_by: null,
-            };
+            const formData = new FormData();
+            formData.append('amount', String(amount));
+            formData.append('paymentMethod', paymentMethod);
+            formData.append('referenceId', `${planName}-${Date.now()}`);
+            formData.append('paymentProofPath', proofPath);
+            formData.append('proofFile', processedScreenshot, processedScreenshot.name);
 
-            console.log('Submitting investment verification record to Supabase:', investmentPayload);
+            const response = await fetch('/api/deposits', {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${await supabase.auth.getSession().then(({ data }) => data.session?.access_token || '')}`,
+                },
+                body: formData,
+            });
 
-            const { data: investmentData, error: insertInvestmentError } = await supabase
-                .from('investments')
-                .insert([investmentPayload])
-                .select();
-
-            if (insertInvestmentError) {
-                console.error('Investment insert failed with Supabase error:', insertInvestmentError);
-                alert(
-                    'Failed to save investment verification.\n\n' +
-                    'Check that the Supabase project is connected correctly and that the public.investments table exists in the database schema.\n\n' +
-                    `Details: ${insertInvestmentError.message || 'Unknown Supabase error'}`
-                );
+            const result = await response.json();
+            if (!response.ok || !result?.success) {
+                console.error('API deposit submission failed:', result);
+                alert(result?.message || 'Unable to submit deposit for approval.');
                 return;
             }
 
-            const createdInvestment = investmentData?.[0];
+            const createdInvestment = result.data;
             if (!createdInvestment?.id) {
                 alert('Investment was submitted but the record was not returned. Please check your account dashboard.');
                 return;
             }
 
-            await supabase.from('investment_transactions').insert({
-                investment_id: createdInvestment.id,
-                user_id: user.id,
-                type: 'investment_submission',
-                amount: amount,
-                status: 'pending',
-                note: `Manual investment review for ${planName} plan`,
-                reference_id: createdInvestment.id,
-            });
-
-            try {
-                const apiBaseUrl = window.CAPITALNEST_SUPABASE?.apiBaseUrl || '';
-                if (apiBaseUrl) {
-                    await fetch(`${apiBaseUrl.replace(/\/$/, '')}/api/investment-submission`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            investment: {
-                                ...createdInvestment,
-                                user_email: user.email,
-                                user_id: user.id,
-                                investment_amount: amount,
-                                plan_name: planName,
-                                payment_proof_path: storagePath,
-                            }
-                        })
-                    });
-                }
-            } catch (notificationError) {
-                console.warn('Telegram server notification skipped or failed:', notificationError);
-            }
-
-            console.log('Investment verification record created successfully:', createdInvestment);
+            console.log('Deposit verification record created successfully:', createdInvestment);
             showSuccess();
         }
 

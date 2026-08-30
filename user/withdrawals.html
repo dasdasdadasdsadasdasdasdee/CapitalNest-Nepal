@@ -199,9 +199,10 @@
     <h4 class="modal-title">Add Wallet</h4><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true"><i data-toggle="tooltip" class="la la-close"></i></span></button></div>
                 <div class="modal-body">
                     <form id="fundwalletform">
-                        <div class="form-group"><label for="paymenttype">Payment Method</label><select class="form-control" id="paymenttype" required=""><optgroup label="Supported Methods"><option value="Bank Transfer" selected="">Bank Transfer</option><option value="eSewa">eSewa</option><option value="IME Pay">IME Pay</option><option value="Khalti">Khalti</option></optgroup></select></div>
+                        <div class="form-group"><label for="paymenttype">Payment Method</label><select class="form-control" id="paymenttype" required=""><optgroup label="Supported Methods"><option value="eSewa" selected="">eSewa</option><option value="Khalti">Khalti</option></optgroup></select></div>
+                        <div class="form-group"><label for="walletName">Wallet Holder Name</label><input class="form-control" type="text" id="walletName" placeholder="Name on your wallet" required=""></div>
                         <div
-                            class="form-group"><label for="walletaddress">Account Details</label><input class="form-control" type="text" id="walletaddress" required="" inputmode="numeric"></div>
+                            class="form-group"><label for="walletaddress">Wallet Number / Account</label><input class="form-control" type="text" id="walletaddress" placeholder="eSewa: 10 digits | Khalti: 10 digits or email" required=""></div>
                 <div class="form-group mt-4"><button class="btn btn3" type="submit">Add Method</button></div>
                 </form>
             </div>
@@ -214,9 +215,11 @@
     <h4 class="modal-title">Make Withdrawal</h4><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true"><i data-toggle="tooltip" class="la la-close"></i></span></button></div>
                 <div class="modal-body">
                     <form id="fundwalletform-1">
-                        <div class="form-group"><label for="withdrawwallet">Choose Withdrawal Method</label><select class="form-control" id="withdrawwallet" required=""><optgroup label="Supported Methods"><option value="Bank Transfer" selected="">Bank Transfer</option><option value="eSewa">eSewa</option><option value="IME Pay">IME Pay</option><option value="Khalti">Khalti</option></optgroup></select></div>
-                        <div
-                            class="form-group"><label for="amountwithdraw">Amount To Withdraw<br></label><input class="form-control" type="number" id="amountwithdraw" min="10" max="10000"></div>
+                        <div class="form-group"><label for="withdrawwallet">Choose Withdrawal Method</label><select class="form-control" id="withdrawwallet" required=""><optgroup label="Supported Methods"><option value="eSewa" selected="">eSewa</option><option value="Khalti">Khalti</option></optgroup></select></div>
+                        <div class="form-group"><label for="walletNameWithdraw">Wallet Holder Name</label><input class="form-control" type="text" id="walletNameWithdraw" placeholder="Name on your wallet" required=""></div>
+                        <div class="form-group"><label for="walletNumberWithdraw">Wallet Number / Account</label><input class="form-control" type="text" id="walletNumberWithdraw" placeholder="eSewa: 10 digits | Khalti: 10 digits or email" required=""></div>
+                        <div class="form-group"><label for="amountwithdraw">Amount To Withdraw<br></label><input class="form-control" type="number" id="amountwithdraw" min="10" max="10000" required=""></div>
+                        <div id="verificationAlert" class="alert alert-warning" style="display:none;"></div>
                 <div class="form-group mt-4"><button class="btn btn3" type="submit">Request Withdrawal</button></div>
                 </form>
             </div>
@@ -364,6 +367,118 @@
             if (Number.isNaN(date.getTime())) return value;
             return date.toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
         }
+
+        // Wallet validation functions
+        function validateWalletName(name) {
+            name = String(name || '').trim();
+            if (!name || name.length < 2) return 'Wallet holder name must be at least 2 characters';
+            if (name.length > 50) return 'Wallet holder name cannot exceed 50 characters';
+            if (!/^[a-zA-Z\s\-]{2,50}$/.test(name)) return 'Wallet holder name contains invalid characters';
+            return true;
+        }
+
+        function validateWalletNumber(number, method) {
+            number = String(number || '').trim();
+            method = String(method || '').toUpperCase();
+            if (!number) return 'Wallet number/account is required';
+            
+            if (method === 'ESEWA') {
+                if (!/^\d{10}$/.test(number)) return 'eSewa account must be exactly 10 digits';
+            } else if (method === 'KHALTI') {
+                const isValidPhone = /^\d{10}$/.test(number);
+                const isValidEmail = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(number);
+                if (!isValidPhone && !isValidEmail) return 'Khalti account must be 10 digits or valid email';
+            }
+            return true;
+        }
+
+        // Handle Add Wallet form
+        document.getElementById('fundwalletform')?.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const method = document.getElementById('paymenttype').value;
+            const walletName = document.getElementById('walletName').value;
+            const walletNumber = document.getElementById('walletaddress').value;
+
+            // Validate
+            const nameError = validateWalletName(walletName);
+            if (nameError !== true) {
+                alert(nameError);
+                return;
+            }
+
+            const numberError = validateWalletNumber(walletNumber, method);
+            if (numberError !== true) {
+                alert(numberError);
+                return;
+            }
+
+            // Submit
+            try {
+                const response = await fetch('/api/wallet/add-wallet-method', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ method, walletName, walletNumber })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    alert('Wallet method added successfully');
+                    $('#addwallet').modal('hide');
+                    this.reset();
+                    await loadWithdrawalPageData();
+                } else {
+                    alert(result.message || 'Failed to add wallet method');
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        });
+
+        // Handle Make Withdrawal form
+        document.getElementById('fundwalletform-1')?.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const method = document.getElementById('withdrawwallet').value;
+            const walletName = document.getElementById('walletNameWithdraw').value;
+            const walletNumber = document.getElementById('walletNumberWithdraw').value;
+            const amount = Number(document.getElementById('amountwithdraw').value);
+
+            // Validate
+            const nameError = validateWalletName(walletName);
+            if (nameError !== true) {
+                alert(nameError);
+                return;
+            }
+
+            const numberError = validateWalletNumber(walletNumber, method);
+            if (numberError !== true) {
+                alert(numberError);
+                return;
+            }
+
+            if (amount < 10) {
+                alert('Minimum withdrawal amount is NPR 10');
+                return;
+            }
+
+            // Submit
+            try {
+                const response = await fetch('/api/wallet/withdrawals', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ method, walletName, walletNumber, amount, accountDetails: walletNumber })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    alert('Withdrawal request submitted successfully');
+                    $('#makewithdrawal').modal('hide');
+                    this.reset();
+                    await loadWithdrawalPageData();
+                } else {
+                    alert(result.message || 'Failed to submit withdrawal request');
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        });
 
         async function loadWithdrawalPageData() {
             const supabase = window.CAPITALNEST_SUPABASE_CLIENT;

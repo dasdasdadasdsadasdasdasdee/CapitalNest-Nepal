@@ -85,6 +85,86 @@ function isValidWithdrawalAmount(requestedAmount, availableBalance) {
   return true;
 }
 
+function validateWithdrawalRequest({ requestedAmount, availableBalance, method, accountDetails, walletName, walletNumber, requiresQr = false }) {
+  const normalizedMethod = String(method || '').trim().toUpperCase();
+  const supportedMethods = ['ESEWA', 'KHALTI'];
+
+  if (!supportedMethods.includes(normalizedMethod)) {
+    return 'Unsupported withdrawal method.';
+  }
+
+  const amountValidation = isValidWithdrawalAmount(requestedAmount, availableBalance);
+  if (amountValidation !== true) {
+    return amountValidation;
+  }
+
+  const details = String(accountDetails || '').trim();
+  if (!details) {
+    return 'Account details are required before requesting a withdrawal.';
+  }
+
+  // Validate wallet name
+  const nameValidation = validateWalletName(walletName);
+  if (nameValidation !== true) {
+    return nameValidation;
+  }
+
+  // Validate wallet number
+  const numberValidation = validateWalletNumber(walletNumber, normalizedMethod);
+  if (numberValidation !== true) {
+    return numberValidation;
+  }
+
+  return true;
+}
+
+function validateWalletName(walletName) {
+  const name = String(walletName || '').trim();
+  
+  if (!name) {
+    return 'Wallet holder name is required.';
+  }
+  
+  if (name.length < 2) {
+    return 'Wallet holder name must be at least 2 characters.';
+  }
+  
+  if (name.length > 50) {
+    return 'Wallet holder name cannot exceed 50 characters.';
+  }
+  
+  // Basic name validation - allow letters, spaces, hyphens
+  if (!/^[a-zA-Z\s\-]{2,50}$/.test(name)) {
+    return 'Wallet holder name contains invalid characters.';
+  }
+  
+  return true;
+}
+
+function validateWalletNumber(walletNumber, method) {
+  const number = String(walletNumber || '').trim();
+  const normalizedMethod = String(method || '').toUpperCase();
+  
+  if (!number) {
+    return 'Wallet number/account is required.';
+  }
+  
+  if (normalizedMethod === 'ESEWA') {
+    if (!/^\d{10}$/.test(number)) {
+      return 'eSewa account must be exactly 10 digits.';
+    }
+  } else if (normalizedMethod === 'KHALTI') {
+    const isValidPhone = /^\d{10}$/.test(number);
+    const isValidEmail = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(number);
+    
+    if (!isValidPhone && !isValidEmail) {
+      return 'Khalti account must be 10 digits or valid email address.';
+    }
+  }
+  
+  return true;
+}
+
 function canTransitionWithdrawalStatus(currentStatus, nextStatus) {
   const current = String(currentStatus || '').toUpperCase();
   const next = String(nextStatus || '').toUpperCase();
@@ -111,6 +191,9 @@ module.exports = {
   WITHDRAWAL_STATUS_TRANSITIONS,
   calculateWalletBalance,
   isValidWithdrawalAmount,
+  validateWithdrawalRequest,
+  validateWalletName,
+  validateWalletNumber,
   canTransitionWithdrawalStatus,
   calculateInvestmentReturn,
   calculateReferralRewards,

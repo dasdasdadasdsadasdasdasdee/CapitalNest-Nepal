@@ -267,18 +267,26 @@
             return data.signedUrl;
         }
 
+        async function getAuthToken() {
+            const { data } = await supabase.auth.getSession();
+            return data.session?.access_token || '';
+        }
+
         async function loadApprovals() {
-            const { data, error } = await supabase
-                .from('investments')
-                .select('*')
-                .order('created_at', { ascending: false });
-            
-            if (error) {
-                console.error('Error loading approvals:', error);
+            const token = await getAuthToken();
+            const response = await fetch('/api/admin/deposits', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            const payload = await response.json();
+            if (!response.ok || !payload?.success) {
+                console.error('Error loading approvals:', payload);
                 return;
             }
-            
-            allApprovals = data || [];
+
+            allApprovals = payload.data || [];
             renderApprovals();
             updateStats();
         }
@@ -286,7 +294,8 @@
         async function renderApprovals() {
             let filtered = allApprovals;
             if (currentFilter) {
-                filtered = allApprovals.filter(a => a.status === currentFilter);
+                const normalizedFilter = String(currentFilter).toUpperCase();
+                filtered = allApprovals.filter(a => String(a.status || '').toUpperCase() === normalizedFilter);
             }
             
             const container = document.getElementById('approvalsContainer');
@@ -302,31 +311,34 @@
             }
 
             const approvalCards = await Promise.all(filtered.map(async (approval) => {
-                const proofUrl = await getSignedProofUrl(approval.payment_proof_path);
+                const proofUrl = approval.payment_proof_path ? await getSignedProofUrl(approval.payment_proof_path) : null;
+                const normalizedStatus = String(approval.status || 'PENDING').toUpperCase();
+                const statusText = normalizedStatus.charAt(0).toUpperCase() + normalizedStatus.slice(1).toLowerCase();
+
                 return `
                     <div class="approval-card">
                         <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
                             <div>
                                 <h5 style="margin: 0 0 0.5rem 0; color: #1f2937;">
-                                    ${approval.user_email || 'User'}
+                                    User ${String(approval.user_id || '').slice(0, 8)}
                                 </h5>
                                 <p style="margin: 0; color: #6b7280; font-size: 0.875rem;">
-                                    ${approval.user_id || 'N/A'}
+                                    ${approval.reference_id || approval.id}
                                 </p>
                             </div>
-                            <span class="status-badge status-${approval.status}">
-                                ${approval.status ? approval.status.charAt(0).toUpperCase() + approval.status.slice(1) : 'Pending'}
+                            <span class="status-badge status-${normalizedStatus.toLowerCase()}">
+                                ${statusText}
                             </span>
                         </div>
                         
                         <div class="info-row">
                             <span class="info-label">Amount:</span>
-                            <span class="info-value">${formatCurrency(approval.investment_amount)}</span>
+                            <span class="info-value">${formatCurrency(approval.amount)}</span>
                         </div>
                         
                         <div class="info-row">
-                            <span class="info-label">Plan:</span>
-                            <span class="info-value">${approval.plan_name || 'Investment'}</span>
+                            <span class="info-label">Method:</span>
+                            <span class="info-value">${approval.payment_method || 'N/A'}</span>
                         </div>
                         
                         <div class="info-row">
@@ -334,10 +346,10 @@
                             <span class="info-value">${formatDate(approval.created_at)}</span>
                         </div>
 
-                        ${approval.admin_note ? `
+                        ${approval.rejection_reason ? `
                             <div class="info-row">
-                                <span class="info-label">Admin Note:</span>
-                                <span class="info-value">${approval.admin_note}</span>
+                                <span class="info-label">Reason:</span>
+                                <span class="info-value">${approval.rejection_reason}</span>
                             </div>
                         ` : ''}
 
@@ -350,7 +362,7 @@
                             </div>
                         ` : ''}
                         
-                        ${approval.status === 'pending' ? `
+                        ${normalizedStatus === 'PENDING' ? `
                             <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
                                 <button class="btn-approve" onclick="approvePayment('${approval.id}')">
                                     ✅ Approve
@@ -368,10 +380,10 @@
         }
         
         function updateStats() {
-            const pending = allApprovals.filter(a => a.status === 'pending');
-            const approved = allApprovals.filter(a => a.status === 'approved' && 
+            const pending = allApprovals.filter(a => String(a.status || '').toUpperCase() === 'PENDING');
+            const approved = allApprovals.filter(a => String(a.status || '').toUpperCase() === 'APPROVED' && 
                 new Date(a.created_at).toDateString() === new Date().toDateString());
-            const totalPending = pending.reduce((sum, a) => sum + Number(a.investment_amount || 0), 0);
+            const totalPending = pending.reduce((sum, a) => sum + Number(a.amount || 0), 0);
             
             document.getElementById('pendingCount').textContent = pending.length;
             document.getElementById('approvedCount').textContent = approved.length;
@@ -381,49 +393,21 @@
         window.approvePayment = async function(approvalId) {
             if (!confirm('✅ Approve this payment?')) return;
 
-            const { data: { user } } = await supabase.auth.getUser();
-            const { data: currentInvestment, error: fetchError } = await supabase
-                .from('investments')
-                .select('*')
-                .eq('id', approvalId)
-                .single();
-
-            if (fetchError || !currentInvestment) {
-                showNotification('❌ Investment record could not be loaded.', 'error');
-                return;
-            }
-
-            if (currentInvestment.status !== 'pending') {
-                showNotification('❌ This investment is no longer pending.', 'error');
-                return;
-            }
-
-            const { error } = await supabase
-                .from('investments')
-                .update({
-                    status: 'approved',
-                    approved_at: new Date().toISOString(),
-                    approved_by: user?.email || 'admin',
-                    updated_at: new Date().toISOString(),
-                    admin_note: currentInvestment.admin_note || 'Approved by administrator.'
-                })
-                .eq('id', approvalId);
-            
-            if (error) {
-                showNotification('❌ Error approving payment', 'error');
-                console.error(error);
-                return;
-            }
-
-            await supabase.from('admin_actions').insert({
-                investment_id: approvalId,
-                admin_user_id: user?.id || currentInvestment.user_id,
-                action: 'APPROVED',
-                previous_status: 'pending',
-                new_status: 'approved',
-                reason: 'Approved by administrator',
+            const token = await getAuthToken();
+            const response = await fetch(`/api/admin/deposits/${approvalId}/approve`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
             });
-            
+
+            const payload = await response.json();
+            if (!response.ok || !payload?.success) {
+                showNotification(payload?.message || '❌ Error approving payment', 'error');
+                return;
+            }
+
             showNotification('✅ Payment approved successfully', 'success');
             await loadApprovals();
         };
@@ -432,49 +416,22 @@
             const reason = window.prompt('Optional rejection reason:', 'PAYMENT PROOF COULD NOT BE VERIFIED');
             if (reason === null) return;
 
-            const { data: { user } } = await supabase.auth.getUser();
-            const { data: currentInvestment, error: fetchError } = await supabase
-                .from('investments')
-                .select('*')
-                .eq('id', approvalId)
-                .single();
-
-            if (fetchError || !currentInvestment) {
-                showNotification('❌ Investment record could not be loaded.', 'error');
-                return;
-            }
-
-            if (currentInvestment.status !== 'pending') {
-                showNotification('❌ This investment is no longer pending.', 'error');
-                return;
-            }
-
-            const { error } = await supabase
-                .from('investments')
-                .update({
-                    status: 'rejected',
-                    rejected_at: new Date().toISOString(),
-                    rejected_by: user?.email || 'admin',
-                    admin_note: reason,
-                    updated_at: new Date().toISOString()
-                })
-                .eq('id', approvalId);
-            
-            if (error) {
-                showNotification('❌ Error rejecting payment', 'error');
-                console.error(error);
-                return;
-            }
-
-            await supabase.from('admin_actions').insert({
-                investment_id: approvalId,
-                admin_user_id: user?.id || currentInvestment.user_id,
-                action: 'REJECTED',
-                previous_status: 'pending',
-                new_status: 'rejected',
-                reason: reason,
+            const token = await getAuthToken();
+            const response = await fetch(`/api/admin/deposits/${approvalId}/reject`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ reason })
             });
-            
+
+            const payload = await response.json();
+            if (!response.ok || !payload?.success) {
+                showNotification(payload?.message || '❌ Error rejecting payment', 'error');
+                return;
+            }
+
             showNotification('✅ Payment rejected', 'success');
             await loadApprovals();
         };

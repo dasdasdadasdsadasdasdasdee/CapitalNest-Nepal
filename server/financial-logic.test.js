@@ -5,6 +5,7 @@ const {
   MIN_WITHDRAWAL_AMOUNT,
   calculateWalletBalance,
   isValidWithdrawalAmount,
+  validateWithdrawalRequest,
   canTransitionWithdrawalStatus,
   calculateInvestmentReturn,
   calculateReferralRewards,
@@ -46,4 +47,12 @@ test('investment return calculation is correct', () => {
 
 test('referral reward totals are computed', () => {
   assert.deepEqual(calculateReferralRewards(50, 50), { referrer: 50, referred: 50, total: 100 });
+});
+
+test('withdrawal validation enforces supported Nepal methods and wallet details', () => {
+  assert.equal(validateWithdrawalRequest({ requestedAmount: 1500, availableBalance: 5000, method: 'ESEWA', accountDetails: '9850000000' }), 'Minimum withdrawal amount is NPR 2,000.');
+  assert.equal(validateWithdrawalRequest({ requestedAmount: 3000, availableBalance: 2500, method: 'KHALTI', accountDetails: '9812345678' }), 'Requested amount exceeds your available balance.');
+  assert.equal(validateWithdrawalRequest({ requestedAmount: 3000, availableBalance: 5000, method: 'BANK_TRANSFER', accountDetails: '12345' }), 'Unsupported withdrawal method.');
+  assert.equal(validateWithdrawalRequest({ requestedAmount: 3000, availableBalance: 5000, method: 'ESEWA', accountDetails: '' }), 'Account details are required before requesting a withdrawal.');
+  assert.equal(validateWithdrawalRequest({ requestedAmount: 3000, availableBalance: 5000, method: 'KHALTI', accountDetails: '9812345678' }), true);
 });

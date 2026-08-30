@@ -195,6 +195,21 @@
 </head>
 
 <body class="dashboard-body">
+    <div class="modal fade" role="dialog" tabindex="-1" id="makewithdrawal">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content"><div class="modal-header">
+    <h4 class="modal-title">Make Withdrawal</h4><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true"><i data-toggle="tooltip" class="la la-close"></i></span></button></div>
+                <div class="modal-body">
+                    <form id="withdrawalFormWallet">
+                        <div class="form-group"><label for="withdrawMethodWallet">Choose Withdrawal Method</label><select class="form-control" id="withdrawMethodWallet" required=""><optgroup label="Supported Methods"><option value="ESEWA" selected="">eSewa</option><option value="KHALTI">Khalti</option></optgroup></select></div>
+                        <div class="form-group"><label for="withdrawAccountDetailsWallet">Account Details / Phone</label><input class="form-control" type="text" id="withdrawAccountDetailsWallet" placeholder="e.g., 9850000000" required=""></div>
+                        <div class="form-group"><label for="withdrawAmountWallet">Amount To Withdraw (NPR)</label><input class="form-control" type="number" id="withdrawAmountWallet" min="2000" placeholder="Minimum NPR 2,000" required=""></div>
+                        <div class="form-group mt-4"><button class="btn btn3" type="submit">Request Withdrawal</button></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="modal fade" role="dialog" tabindex="-1" id="fundwallet">
         <div class="modal-dialog" role="document">
             <div class="modal-content"><div class="modal-header">
@@ -203,16 +218,16 @@
                     <form id="fundwalletform">
                         <div class="form-row">
                             <div class="col">
-                                <div class="form-group"><label for="paymenttype">Payment Type</label><select class="form-control" id="paymenttype" required=""><optgroup label="Supported Payment Types"><option value="Bank Transfer" selected="">Bank Transfer</option><option value="eSewa">eSewa</option><option value="IME Pay">IME Pay</option><option value="Khalti">Khalti</option></optgroup></select></div>
+                                <div class="form-group"><label for="paymenttype">Payment Type</label><select class="form-control" id="paymenttype" required=""><optgroup label="Supported Payment Types"><option value="eSewa" selected="">eSewa</option><option value="Khalti">Khalti</option><option value="FonePay">FonePay</option></optgroup></select></div>
                             </div>
                             <div class="col-lg-8">
                                 <div class="form-group"><label for="fundamount">Amount</label><input class="form-control" type="text" id="fundamount" required="" inputmode="numeric"></div>
                             </div>
                         </div>
                         <hr>
-                        <p class="text-center body-p mb-0">Wallet Address</p>
-                        <p class="text-center bg-yellow pt-2 pb-2"><strong>BANK TRANSFER</strong>: CapitalNest Nepal Account</p>
-                        <div class="text-center"><small class="d-block mb-2">Pay the amount in NPR to the account details above or scan the QR code below.</small><img class="img-fluid" src="../assets/img/qrcode.png" width="65%"></div>
+                        <p class="text-center body-p mb-0">Payment Details</p>
+                        <p id="paymentWalletLabel" class="text-center bg-yellow pt-2 pb-2"><strong>eSewa</strong>: 98XXXXXXXX</p>
+                        <div class="text-center"><small id="paymentInstruction" class="d-block mb-2">Pay the amount in NPR using the selected eSewa QR below.</small><img id="paymentQrImage" class="img-fluid" src="../assets/img/ESEWA.jpg" width="65%"></div>
                         <div class="form-group mt-4 text-center"><button class="btn btn3" type="submit">Confirm Deposit</button></div>
                     </form>
                 </div>
@@ -250,7 +265,7 @@
                     <h1 class="dashboard-heading-h ml-3">Wallet</h1>
                 </div>
             </div>
-            <div class="col text-right mobile-center"><a class="btn btn3" role="button" href="#fundwallet" data-target="#fundwallet" data-toggle="modal">Fund Wallet</a></div>
+            <div class="col text-right mobile-center"><a class="btn btn1" role="button" href="../user/investment.html">Make Investment</a></div>
         </div>
         <div class="row mt-5">
             <div class="col-md-12 mb-3">
@@ -467,6 +482,97 @@
                 });
                 link.classList.add('active');
             });
+        });
+
+        const paymentQrMap = {
+            'eSewa': {
+                label: 'eSewa: 9767048356',
+                image: '../assets/img/ESEWA.jpg',
+                instruction: 'Pay the amount in NPR using the selected eSewa QR below.'
+            },
+            'Khalti': {
+                label: 'Khalti: 9713555399',
+                image: '../assets/img/KHALTI.jpg',
+                instruction: 'Pay the amount in NPR using the selected Khalti QR below.'
+            },
+            'FonePay': {
+                label: 'FonePay: 98XXXXXXXX',
+                image: '../assets/img/FONEYPAY.jpg',
+                instruction: 'Pay the amount in NPR using the selected FonePay QR below.'
+            }
+        };
+
+        function updatePaymentPreview() {
+            const selected = $('#paymenttype').val() || 'eSewa';
+            const config = paymentQrMap[selected] || paymentQrMap['eSewa'];
+            $('#paymentWalletLabel').html(`<strong>${selected}</strong>: ${config.label.replace(/^.*?:\s*/, '')}`);
+            $('#paymentInstruction').text(config.instruction);
+            $('#paymentQrImage').attr('src', config.image);
+        }
+
+        $('#paymenttype').on('change', updatePaymentPreview);
+        updatePaymentPreview();
+
+        $('#withdrawalFormWallet').on('submit', async function(e) {
+            e.preventDefault();
+            const supabase = window.CAPITALNEST_SUPABASE_CLIENT;
+            if (!supabase) {
+                alert('Supabase client not available. Please refresh the page.');
+                return;
+            }
+
+            const { data: { user }, error: userError } = await supabase.auth.getUser();
+            if (userError || !user) {
+                alert('Please log in to make a withdrawal.');
+                window.location.href = '../login.html';
+                return;
+            }
+
+            const method = $('#withdrawMethodWallet').val().toUpperCase();
+            const accountDetails = $('#withdrawAccountDetailsWallet').val().trim();
+            const amount = Number($('#withdrawAmountWallet').val() || 0);
+
+            if (!method) {
+                alert('Please select a withdrawal method.');
+                return;
+            }
+            if (!accountDetails) {
+                alert('Please enter your account details or phone number.');
+                return;
+            }
+            if (amount < 2000) {
+                alert('Minimum withdrawal amount is NPR 2,000.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/withdrawals', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${user.id}`
+                    },
+                    body: JSON.stringify({
+                        method: method,
+                        accountDetails: accountDetails,
+                        amount: amount
+                    })
+                });
+
+                const result = await response.json();
+                if (!response.ok) {
+                    alert(`Error: ${result.message || 'Unable to process withdrawal request.'}`);
+                    return;
+                }
+
+                alert('✅ Withdrawal request submitted successfully!\nStatus: Pending admin review');
+                $('#makewithdrawal').modal('hide');
+                $('#withdrawalFormWallet')[0].reset();
+                await loadWalletPageData();
+            } catch (error) {
+                console.error('Withdrawal submission error:', error);
+                alert('Error: Unable to process withdrawal. Please try again.');
+            }
         });
 
         const supabase = window.CAPITALNEST_SUPABASE_CLIENT;
