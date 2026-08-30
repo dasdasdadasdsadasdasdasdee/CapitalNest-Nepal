@@ -30,7 +30,7 @@ const supabase = createClient(supabaseUrl, supabaseServiceRole || supabaseAnonKe
 
 function getRequestSupabaseClient(req) {
   const authHeader = req.headers.authorization || '';
-  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
 
   return createClient(supabaseUrl, supabaseAnonKey, {
     auth: { persistSession: false, autoRefreshToken: false },
@@ -38,6 +38,14 @@ function getRequestSupabaseClient(req) {
       headers: token ? { Authorization: `Bearer ${token}` } : {}
     }
   });
+}
+
+function getDepositWriteClient(req) {
+  if (supabaseServiceRole) {
+    return supabase;
+  }
+
+  return req.supabase || getRequestSupabaseClient(req);
 }
 
 const uploadDir = path.join(__dirname, '..', 'private', 'uploads');
@@ -200,18 +208,21 @@ router.get('/deposits', requireAuth, async (req, res) => {
 });
 
 router.post('/deposits', requireAuth, upload.single('proofFile'), async (req, res) => {
+  let stage = 'request parsing';
   try {
     const amount = Number(req.body.amount || 0);
     const method = String(req.body.paymentMethod || req.body.method || 'ESEWA').toUpperCase();
     const referenceId = String(req.body.referenceId || '').trim();
     const userId = req.user.id;
-    const requestSupabase = req.supabase || getRequestSupabaseClient(req);
+    const requestSupabase = getDepositWriteClient(req);
 
     console.log('Deposit submit request received:', {
       userId,
       amount,
       method,
       referenceId,
+      receivedFields: Object.keys(req.body || {}),
+      hasServiceRole: Boolean(supabaseServiceRole),
       paymentProofPath: req.body.paymentProofPath || null,
       filePresent: Boolean(req.file),
       headers: {
@@ -220,7 +231,7 @@ router.post('/deposits', requireAuth, upload.single('proofFile'), async (req, re
       }
     });
 
-    if (!amount || amount <= 0) {
+    if (!Number.isFinite(amount) || amount <= 0) {
       return respondError(res, 'INVALID_AMOUNT', 'A valid deposit amount is required.', 400);
     }
 
@@ -228,10 +239,30 @@ router.post('/deposits', requireAuth, upload.single('proofFile'), async (req, re
       return respondError(res, 'INVALID_PAYMENT_METHOD', 'Unsupported payment method.', 400);
     }
 
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(userId)) {
+      return respondError(res, 'INVALID_USER_ID', 'Authenticated user ID is invalid.', 401);
+    }
+
+    if (!referenceId) {
+      return respondError(res, 'INVALID_REFERENCE_ID', 'A transaction reference is required.', 400);
+    }
+
+    stage = 'deposit payload preparation';
     let proofPath = req.body.paymentProofPath || null;
     if (req.file) {
       proofPath = `payment-proofs/${userId}/${req.file.filename}`;
     }
+
+    stage = 'Supabase deposits insert';
+    console.log('Deposit insert starting:', {
+      stage,
+      table: 'public.deposits',
+      userId,
+      amount,
+      method,
+      hasProofPath: Boolean(proofPath),
+      writeMode: supabaseServiceRole ? 'service_role' : 'authenticated_jwt'
+    });
 
     const { data: deposit, error: insertError } = await requestSupabase
       .from('deposits')
@@ -274,6 +305,7 @@ router.post('/deposits', requireAuth, upload.single('proofFile'), async (req, re
       errorId,
       method: req.method,
       path: req.originalUrl,
+      stage,
       message: error?.message,
       details: error?.details,
       hint: error?.hint,
@@ -284,6 +316,23 @@ router.post('/deposits', requireAuth, upload.single('proofFile'), async (req, re
       userId: req.user?.id || null,
       filePresent: Boolean(req.file)
     });
+
+    if (error?.code === '42501') {
+      return res.status(403).json({
+        error: 'DEPOSIT_PERMISSION_DENIED',
+        message: 'The authenticated account does not have permission to save this deposit.',
+        errorId
+      });
+    }
+
+    if (['22P02', '23503', '23514', '23502', '42703', '42P01'].includes(error?.code)) {
+      return res.status(500).json({
+        error: 'DEPOSIT_DATABASE_SCHEMA_ERROR',
+        message: 'The deposit database configuration is incomplete. Please contact support.',
+        errorId
+      });
+    }
+
     res.status(500).json({
       error: 'DEPOSIT_SUBMIT_ERROR',
       message: 'Unable to submit deposit. Please try again.',
