@@ -17,15 +17,29 @@ const {
 
 const router = express.Router();
 const supabaseUrl = process.env.SUPABASE_URL || 'https://mohigobcssqzywmhndml.supabase.co';
-const supabaseServiceRole = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || 'sb_publishable_MRVoyKc48ERptjd1G9l08g_3YTAleje';
+const supabaseServiceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || 'sb_publishable_MRVoyKc48ERptjd1G9l08g_3YTAleje';
 
 if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  console.warn('Supabase environment variables are missing in Railway. Falling back to the configured project defaults for auth and deposit processing.');
+  console.warn('Supabase service-role key is missing in Railway. The app will continue using the authenticated user JWT for RLS-protected requests.');
 }
 
-const supabase = createClient(supabaseUrl, supabaseServiceRole, {
+const supabase = createClient(supabaseUrl, supabaseServiceRole || supabaseAnonKey, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
+
+function getRequestSupabaseClient(req) {
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+  const key = supabaseServiceRole || supabaseAnonKey;
+
+  return createClient(supabaseUrl, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    },
+  });
+}
 
 const uploadDir = path.join(__dirname, '..', 'private', 'uploads');
 fs.mkdirSync(uploadDir, { recursive: true });
@@ -75,12 +89,14 @@ async function requireAuth(req, res, next) {
       const { data: { user }, error } = await supabase.auth.getUser(token);
       if (!error && user) {
         req.user = user;
+        req.supabase = getRequestSupabaseClient(req);
         return next();
       }
     }
 
     if (headerUserId) {
       req.user = { id: headerUserId };
+      req.supabase = getRequestSupabaseClient(req);
       return next();
     }
 
@@ -88,6 +104,7 @@ async function requireAuth(req, res, next) {
   } catch (error) {
     if (headerUserId) {
       req.user = { id: headerUserId };
+      req.supabase = getRequestSupabaseClient(req);
       return next();
     }
     return respondError(res, 'UNAUTHORIZED', 'Authentication failed.', 401);
@@ -183,12 +200,13 @@ router.post('/deposits', requireAuth, upload.single('proofFile'), async (req, re
     const method = String(req.body.paymentMethod || req.body.method || 'ESEWA').toUpperCase();
     const referenceId = String(req.body.referenceId || '').trim();
     const userId = req.user.id;
+    const requestSupabase = req.supabase || getRequestSupabaseClient(req);
 
     if (!amount || amount <= 0) {
       return respondError(res, 'INVALID_AMOUNT', 'A valid deposit amount is required.', 400);
     }
 
-    if (!['ESEWA', 'KHALTI'].includes(method)) {
+    if (!['ESEWA', 'KHALTI', 'FONEPAY'].includes(method)) {
       return respondError(res, 'INVALID_PAYMENT_METHOD', 'Unsupported payment method.', 400);
     }
 
@@ -197,7 +215,7 @@ router.post('/deposits', requireAuth, upload.single('proofFile'), async (req, re
       proofPath = `payment-proofs/${userId}/${req.file.filename}`;
     }
 
-    const { data: deposit, error: insertError } = await supabase
+    const { data: deposit, error: insertError } = await requestSupabase
       .from('deposits')
       .insert({
         user_id: userId,
@@ -210,7 +228,10 @@ router.post('/deposits', requireAuth, upload.single('proofFile'), async (req, re
       .select()
       .single();
 
-    if (insertError) throw insertError;
+    if (insertError) {
+      console.error('Deposit insert error:', insertError);
+      throw insertError;
+    }
 
     res.status(201).json({
       success: true,
@@ -218,6 +239,7 @@ router.post('/deposits', requireAuth, upload.single('proofFile'), async (req, re
       message: 'Deposit submitted successfully and is pending admin approval.',
     });
   } catch (error) {
+    console.error('Deposit submission failed:', error);
     res.status(500).json({ error: 'DEPOSIT_SUBMIT_ERROR', message: 'Unable to submit deposit.' });
   }
 });
