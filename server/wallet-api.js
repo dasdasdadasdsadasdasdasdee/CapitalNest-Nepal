@@ -76,7 +76,7 @@ function respondError(res, code, message, status = 400) {
 
 async function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization || '';
-  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
 
   if (!token) {
     console.warn('Deposit auth rejected: request missing bearer token.', {
@@ -87,17 +87,22 @@ async function requireAuth(req, res, next) {
   }
 
   try {
-    const { data: { user }, error } = await supabase.auth.getUser(token);
+    const requestSupabase = getRequestSupabaseClient(req);
+    const { data: { user }, error } = await requestSupabase.auth.getUser(token);
     if (error || !user) {
       console.warn('Deposit auth rejected: invalid bearer token.', {
         path: req.originalUrl,
-        error: error?.message || 'No user resolved from token'
+        error: error?.message || 'No user resolved from token',
+        errorCode: error?.code || null,
+        errorStatus: error?.status || null,
+        tokenLength: token.length,
+        tokenPrefix: token.slice(0, 12)
       });
       return respondError(res, 'UNAUTHORIZED', 'Invalid user session.', 401);
     }
 
     req.user = user;
-    req.supabase = getRequestSupabaseClient(req);
+    req.supabase = requestSupabase;
     return next();
   } catch (error) {
     console.error('requireAuth error:', error);

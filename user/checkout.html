@@ -658,17 +658,13 @@
         }
 
         const supabase = createClient(window.CAPITALNEST_SUPABASE.url, window.CAPITALNEST_SUPABASE.anonKey, {
-            auth: { persistSession: true, autoRefreshToken: true }
+            auth: {
+                persistSession: true,
+                autoRefreshToken: true,
+                storage: getSafeSupabaseStorage()
+            }
         });
         window.CAPITALNEST_SUPABASE_CLIENT = supabase;
-
-        try {
-            if (supabase && supabase.auth && typeof supabase.auth.setSession === 'function') {
-                supabase.auth.setSession = supabase.auth.setSession;
-            }
-        } catch (error) {
-            console.warn('Unable to initialize browser storage override for Supabase auth.', error);
-        }
     </script>
     <script>
         const AUTH_SESSION_TIMEOUT_MS = 15000;
@@ -781,6 +777,26 @@
             }
 
             return { session, user, lastError };
+        }
+
+        async function submitDepositRequest(formData, accessToken, retryAfterRefresh) {
+            const response = await fetch('/api/deposits', {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${accessToken}`
+                },
+                body: formData,
+            });
+
+            if (response.status === 401 && retryAfterRefresh) {
+                console.warn('Deposit API rejected the token once; refreshing the Supabase session and retrying once.');
+                const refreshedAuthState = await getFreshAuthState();
+                if (refreshedAuthState.user && refreshedAuthState.session?.access_token) {
+                    return submitDepositRequest(formData, refreshedAuthState.session.access_token, false);
+                }
+            }
+
+            return response;
         }
 
         // Get plan details from localStorage
@@ -1171,13 +1187,7 @@
                 timestamp: new Date().toISOString()
             });
 
-            const response = await fetch('/api/deposits', {
-                method: 'POST',
-                headers: {
-                    Authorization: `Bearer ${accessToken}`
-                },
-                body: formData,
-            });
+            const response = await submitDepositRequest(formData, accessToken, true);
 
             const result = await response.json().catch(() => ({}));
             console.log('Deposit API response:', {
