@@ -444,6 +444,40 @@
             border-radius: 2px;
         }
 
+        /* Affiliate Link Styling - Ensure text is always visible */
+        .form-control.affiliate-link-input {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+            -webkit-text-fill-color: #000000 !important;
+            border-color: #0066cc !important;
+            font-size: 15px;
+            font-weight: 600;
+            padding: 12px 14px !important;
+            min-height: 50px;
+            white-space: normal;
+            overflow-wrap: break-word;
+            word-break: break-all;
+            text-overflow: clip;
+            letter-spacing: 0px;
+            line-height: 1.6;
+        }
+
+        .form-control.affiliate-link-input[readonly] {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+            -webkit-text-fill-color: #000000 !important;
+            opacity: 1 !important;
+        }
+
+        .form-control.affiliate-link-input:disabled,
+        .form-control.affiliate-link-input[readonly] {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+            -webkit-text-fill-color: #000000 !important;
+            opacity: 1 !important;
+            cursor: text;
+        }
+
         .affiliate-link-row {
             display: flex;
             align-items: stretch;
@@ -637,11 +671,39 @@
                 border: 2px solid #0066cc !important;
                 -webkit-text-fill-color: #000000 !important;
                 text-size-adjust: 100%;
+                opacity: 1 !important;
             }
             
             .affiliate-link-input::placeholder {
                 color: #999 !important;
                 -webkit-text-fill-color: #999 !important;
+            }
+
+            .affiliate-link-input[readonly] {
+                background-color: #ffffff !important;
+                color: #000000 !important;
+                -webkit-text-fill-color: #000000 !important;
+                opacity: 1 !important;
+            }
+
+            #affiliateLinkInput {
+                background-color: #ffffff !important;
+                color: #000000 !important;
+                -webkit-text-fill-color: #000000 !important;
+                border-color: #0066cc !important;
+                font-size: 16px !important;
+                font-weight: 700 !important;
+                padding: 16px 14px !important;
+                min-height: 64px !important;
+                line-height: 1.6 !important;
+                opacity: 1 !important;
+            }
+
+            #affiliateLinkInput[readonly] {
+                background-color: #ffffff !important;
+                color: #000000 !important;
+                -webkit-text-fill-color: #000000 !important;
+                opacity: 1 !important;
             }
 
             .affiliate-link-append {
