@@ -16,12 +16,20 @@ const {
 } = require('./financial-logic');
 
 const router = express.Router();
-const supabaseUrl = process.env.SUPABASE_URL || 'https://mohigobcssqzywmhndml.supabase.co';
-const supabaseServiceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || 'sb_publishable_MRVoyKc48ERptjd1G9l08g_3YTAleje';
+const projectSupabaseUrl = 'https://mohigobcssqzywmhndml.supabase.co';
+const configuredSupabaseUrl = process.env.SUPABASE_URL?.replace(/\/$/, '');
+const supabaseUrl = projectSupabaseUrl;
+const supabaseServiceRole = configuredSupabaseUrl === projectSupabaseUrl
+  ? process.env.SUPABASE_SERVICE_ROLE_KEY
+  : null;
+const supabaseAnonKey = 'sb_publishable_MRVoyKc48ERptjd1G9l08g_3YTAleje';
 
-if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  console.warn('Supabase service-role key is missing in Railway. User-authenticated requests will continue using the JWT from the browser session.');
+if (configuredSupabaseUrl && configuredSupabaseUrl !== projectSupabaseUrl) {
+  console.warn(`Ignoring mismatched SUPABASE_URL (${configuredSupabaseUrl}); using ${projectSupabaseUrl}.`);
+}
+
+if (!supabaseServiceRole) {
+  console.warn('Supabase service-role key is unavailable for the configured project. User-authenticated requests will use the JWT from the browser session.');
 }
 
 const supabase = createClient(supabaseUrl, supabaseServiceRole || supabaseAnonKey, {
