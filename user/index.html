@@ -494,6 +494,51 @@
             padding: 8px 16px !important;
             white-space: nowrap;
             font-size: 14px;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        @media (max-width: 576px) {
+            .affiliate-link-row {
+                flex-direction: column;
+                gap: 0;
+            }
+
+            .affiliate-link-input {
+                width: 100%;
+                min-height: 54px;
+                border-radius: 0.375rem 0.375rem 0 0 !important;
+                font-size: 16px;
+                line-height: 1.5;
+                padding: 14px 12px !important;
+            }
+
+            .affiliate-link-append {
+                width: 100%;
+                display: flex;
+            }
+
+            .affiliate-link-button {
+                width: 100%;
+                border-radius: 0 0 0.375rem 0.375rem !important;
+            }
+        }
+
+        @supports (-webkit-touch-callout: none) {
+            .affiliate-link-row {
+                flex-direction: column;
+                gap: 0;
+            }
+
+            .affiliate-link-input,
+            .affiliate-link-append,
+            .affiliate-link-button {
+                width: 100%;
+            }
+
+            .affiliate-link-button {
+                border-radius: 0 0 0.375rem 0.375rem !important;
+            }
         }
 
         /* Transaction History Styling */
@@ -1101,22 +1146,34 @@
         if (!affiliateLinkInput) return;
 
         const shareUrl = affiliateLinkInput.value || buildReferralShareUrl('');
+        const button = document.getElementById('copyReferralLinkBtn');
+
         try {
             if (navigator.clipboard && window.isSecureContext) {
                 await navigator.clipboard.writeText(shareUrl);
             } else {
                 affiliateLinkInput.focus();
+                affiliateLinkInput.setSelectionRange(0, shareUrl.length);
                 affiliateLinkInput.select();
                 document.execCommand('copy');
             }
-            const button = document.getElementById('copyReferralLinkBtn');
+
             if (button) {
                 const originalText = button.textContent;
                 button.textContent = 'Copied';
-                setTimeout(() => { button.textContent = originalText; }, 1200);
+                button.disabled = true;
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.disabled = false;
+                }, 1200);
             }
         } catch (error) {
             console.warn('Referral link copy failed:', error);
+            if (button) {
+                const originalText = button.textContent;
+                button.textContent = 'Try again';
+                setTimeout(() => { button.textContent = originalText; }, 1200);
+            }
         }
     }
 
