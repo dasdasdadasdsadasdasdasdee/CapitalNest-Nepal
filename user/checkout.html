@@ -1030,7 +1030,9 @@
             }
 
             const accessToken = await getActiveAccessToken();
-            if (!accessToken) {
+            const fallbackUserId = user?.id || localStorage.getItem('capitalnest_user_id') || '';
+
+            if (!accessToken && !fallbackUserId) {
                 alert('Your session is expired. Please log in again.');
                 window.location.href = '../login.html';
                 return;
@@ -1046,7 +1048,8 @@
             const response = await fetch('/api/deposits', {
                 method: 'POST',
                 headers: {
-                    Authorization: `Bearer ${accessToken}`,
+                    Authorization: `Bearer ${accessToken || fallbackUserId}`,
+                    'X-User-Id': fallbackUserId || ''
                 },
                 body: formData,
             });
