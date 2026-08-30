@@ -1260,9 +1260,15 @@
     }
 
     function generateReferralCode() {
-        const prefix = 'CN';
-        const randomPart = Math.random().toString(36).slice(2, 8).toUpperCase();
-        return `${prefix}${randomPart}`;
+        const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        const randomValues = new Uint32Array(11);
+        if (window.crypto?.getRandomValues) {
+            window.crypto.getRandomValues(randomValues);
+        } else {
+            randomValues.fill(Math.floor(Math.random() * 0xffffffff));
+        }
+        const randomPart = Array.from(randomValues, (value) => alphabet[value % alphabet.length]).join('');
+        return `CN${randomPart}`;
     }
 
     function buildReferralShareUrl(referralCode) {
@@ -1367,6 +1373,18 @@
         if (copyButton) {
             copyButton.addEventListener('click', copyReferralLink);
         }
+
+        if (window.__affiliateRealtimeChannel) {
+            await supabase.removeChannel(window.__affiliateRealtimeChannel);
+        }
+        window.__affiliateRealtimeChannel = supabase.channel(`affiliate-updates-${user.id}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'referral_history', filter: `inviter_id=eq.${user.id}` }, () => {
+                loadAffiliateData(supabase, user);
+            })
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` }, () => {
+                loadAffiliateData(supabase, user);
+            })
+            .subscribe();
 
         try {
             let { data: profileData, error: profileError } = await supabase
