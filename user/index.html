@@ -444,40 +444,6 @@
             border-radius: 2px;
         }
 
-        /* Affiliate Link Styling - Ensure text is always visible */
-        .form-control.affiliate-link-input {
-            background-color: #ffffff !important;
-            color: #000000 !important;
-            -webkit-text-fill-color: #000000 !important;
-            border-color: #0066cc !important;
-            font-size: 15px;
-            font-weight: 600;
-            padding: 12px 14px !important;
-            min-height: 50px;
-            white-space: normal;
-            overflow-wrap: break-word;
-            word-break: break-all;
-            text-overflow: clip;
-            letter-spacing: 0px;
-            line-height: 1.6;
-        }
-
-        .form-control.affiliate-link-input[readonly] {
-            background-color: #ffffff !important;
-            color: #000000 !important;
-            -webkit-text-fill-color: #000000 !important;
-            opacity: 1 !important;
-        }
-
-        .form-control.affiliate-link-input:disabled,
-        .form-control.affiliate-link-input[readonly] {
-            background-color: #ffffff !important;
-            color: #000000 !important;
-            -webkit-text-fill-color: #000000 !important;
-            opacity: 1 !important;
-            cursor: text;
-        }
-
         .affiliate-link-row {
             display: flex;
             align-items: stretch;
@@ -503,7 +469,7 @@
             line-height: 1.6;
             -webkit-text-fill-color: #000000 !important;
         }
-        
+
         .affiliate-link-input::placeholder {
             color: #666 !important;
             -webkit-text-fill-color: #666 !important;
@@ -514,19 +480,6 @@
             color: #000000 !important;
             -webkit-text-fill-color: #000000 !important;
             opacity: 1 !important;
-        }
-
-        #affiliateLinkInput {
-            background-color: #ffffff !important;
-            color: #000000 !important;
-            -webkit-text-fill-color: #000000 !important;
-            border-color: #0066cc !important;
-        }
-
-        #affiliateLinkInput[readonly] {
-            background-color: #ffffff !important;
-            color: #000000 !important;
-            -webkit-text-fill-color: #000000 !important;
         }
 
         .affiliate-link-append {
@@ -649,67 +602,6 @@
 
             .dashboard-h {
                 font-size: 14px;
-            }
-
-            .affiliate-link-row {
-                flex-direction: column;
-                gap: 0;
-            }
-
-            .affiliate-link-input {
-                width: 100%;
-                min-height: 64px;
-                border-radius: 0.375rem 0.375rem 0 0 !important;
-                font-size: 16px;
-                padding: 16px 14px !important;
-                word-break: break-all;
-                overflow-wrap: break-word;
-                background-color: #ffffff !important;
-                color: #000000 !important;
-                font-weight: 700;
-                line-height: 1.6;
-                border: 2px solid #0066cc !important;
-                -webkit-text-fill-color: #000000 !important;
-                text-size-adjust: 100%;
-                opacity: 1 !important;
-            }
-            
-            .affiliate-link-input::placeholder {
-                color: #999 !important;
-                -webkit-text-fill-color: #999 !important;
-            }
-
-            .affiliate-link-input[readonly] {
-                background-color: #ffffff !important;
-                color: #000000 !important;
-                -webkit-text-fill-color: #000000 !important;
-                opacity: 1 !important;
-            }
-
-            #affiliateLinkInput {
-                background-color: #ffffff !important;
-                color: #000000 !important;
-                -webkit-text-fill-color: #000000 !important;
-                border-color: #0066cc !important;
-                font-size: 16px !important;
-                font-weight: 700 !important;
-                padding: 16px 14px !important;
-                min-height: 64px !important;
-                line-height: 1.6 !important;
-                opacity: 1 !important;
-            }
-
-            #affiliateLinkInput[readonly] {
-                background-color: #ffffff !important;
-                color: #000000 !important;
-                -webkit-text-fill-color: #000000 !important;
-                opacity: 1 !important;
-            }
-
-            .affiliate-link-append {
-                width: 100%;
-                display: flex;
-                margin-top: 0;
             }
 
             .affiliate-link-button {
@@ -1068,58 +960,29 @@
         <div class="row">
             <div class="col-md-8 mb-3">
                 <div class="card-bg2">
-                    <div class="card-bg2-header"><a class="float-right" href="investment.html">See All</a>
-                        <h6 class="dashboard-h">My Investments</h6>
+                    <div class="card-bg2-header">
+                        <h6 class="dashboard-h">Affiliate</h6>
                     </div>
                     <div class="row" style="margin-left: 15px;margin-right: 15px;">
                         <div class="col">
-                            <div class="table-responsive table-borderless text-nowrap">
-                                <table class="table table-bordered table-spacing">
-                                    <thead>
-                                        <tr>
-                                            <th>Date</th>
-                                            <th>Amount</th>
-                                            <th>Profit</th>
-                                            <th>Payout (%)</th>
-                                            <th></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="investmentTableBody">
-                                        <tr class="table-row-empty text-center">
-                                            <td colspan="5">Loading investments...</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col mb-3">
-                <div class="card-bg">
-                    <div class="dropdown float-right"><button class="btn dropdown-toggle drpdwn-togg" data-toggle="dropdown" aria-expanded="false" type="button"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" class="bi bi-share">
-  <path fill-rule="evenodd" d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.499 2.499 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5zm-8.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm11 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"></path>
-</svg></button>
-                        <div class="dropdown-menu"><a class="dropdown-item pt-3 pb-3" href="http://www.facebook.com/sharer.php?u=https://sample.com/ref?23242" target="_blank">Share Messages</a><a class="dropdown-item pt-3 pb-3" href="http://www.facebook.com/sharer.php?u=https://sample.com/ref?23242"
-                                target="_blank">Facebook</a><a class="dropdown-item pt-3 pb-3" href="https://twitter.com/share?url=https://sample.com/ref?23242" target="_blank">Twitter</a></div>
-                    </div>
-                    <h6 class="dashboard-h mb-4">Affiliate</h6>
-                    <form>
-                        <div class="form-group">
-                            <label>Affiliate Link</label>
-                            <div class="input-group affiliate-link-row">
-                                <input id="affiliateLinkInput" class="form-control affiliate-link-input" type="text" readonly value="">
-                                <div class="input-group-append affiliate-link-append">
-                                    <button id="copyReferralLinkBtn" class="btn btn-primary affiliate-link-button" type="button">Copy</button>
+                            <div class="form-group mb-3">
+                                <label>Affiliate Link</label>
+                                <div class="input-group affiliate-link-row">
+                                    <input id="affiliateLinkInput" class="form-control affiliate-link-input" type="text" readonly value="">
+                                    <div class="input-group-append affiliate-link-append">
+                                        <button id="copyReferralLinkBtn" class="btn btn-primary affiliate-link-button" type="button">Copy</button>
+                                    </div>
                                 </div>
                             </div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="dashboard-h mb-0">Invited</h6>
+                                <a id="invitedCount" class="float-right" href="#">0</a>
+                            </div>
+                            <div style="border: 1px dotted #000; padding: 10px; margin-top: 10px;">
+                                <h5 class="text-center">Total Affiliate Bonus</h5>
+                                <h5 id="affiliateBonusValue" class="text-center">NPR 0</h5>
+                            </div>
                         </div>
-                    </form>
-                    <hr><a id="invitedCount" class="float-right" href="#">0</a>
-                    <h6 class="dashboard-h">Invited</h6>
-                    <div style="border: 1px dotted #000; padding: 10px;">
-                        <h5 class="text-center">Total Affiliate Bonus</h5>
-                        <h5 id="affiliateBonusValue" class="text-center">NPR 0</h5>
                     </div>
                 </div>
             </div>
