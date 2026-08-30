@@ -738,6 +738,41 @@
             return allowed.includes((mimeType || '').toLowerCase());
         }
 
+        async function getActiveAccessToken() {
+            try {
+                const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+                if (sessionError) {
+                    console.warn('Supabase session fetch failed:', sessionError);
+                }
+                if (sessionData?.session?.access_token) {
+                    return sessionData.session.access_token;
+                }
+
+                const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+                if (refreshError) {
+                    console.warn('Supabase session refresh failed:', refreshError);
+                }
+                if (refreshData?.session?.access_token) {
+                    return refreshData.session.access_token;
+                }
+
+                const { data: userData, error: userError } = await supabase.auth.getUser();
+                if (userError) {
+                    console.warn('Supabase getUser failed:', userError);
+                }
+                if (userData?.user) {
+                    const { data: fallbackSessionData } = await supabase.auth.getSession();
+                    if (fallbackSessionData?.session?.access_token) {
+                        return fallbackSessionData.session.access_token;
+                    }
+                }
+            } catch (error) {
+                console.warn('Unable to resolve active Supabase token:', error);
+            }
+
+            return '';
+        }
+
         async function convertAvifToBrowserCompatibleImage(file) {
             if (!file || file.type !== 'image/avif') {
                 return {
@@ -969,6 +1004,13 @@
                 return;
             }
 
+            const accessToken = await getActiveAccessToken();
+            if (!accessToken) {
+                alert('Your session is expired. Please log in again.');
+                window.location.href = '../login.html';
+                return;
+            }
+
             const formData = new FormData();
             formData.append('amount', String(amount));
             formData.append('paymentMethod', paymentMethod);
@@ -979,7 +1021,7 @@
             const response = await fetch('/api/deposits', {
                 method: 'POST',
                 headers: {
-                    Authorization: `Bearer ${await supabase.auth.getSession().then(({ data }) => data.session?.access_token || '')}`,
+                    Authorization: `Bearer ${accessToken}`,
                 },
                 body: formData,
             });
