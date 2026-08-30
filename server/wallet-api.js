@@ -21,7 +21,7 @@ const supabaseServiceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || 'sb_publishable_MRVoyKc48ERptjd1G9l08g_3YTAleje';
 
 if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  console.warn('Supabase service-role key is missing in Railway. The app will continue using the authenticated user JWT for RLS-protected requests.');
+  console.warn('Supabase service-role key is missing in Railway. User-authenticated requests will continue using the JWT from the browser session.');
 }
 
 const supabase = createClient(supabaseUrl, supabaseServiceRole || supabaseAnonKey, {
@@ -31,13 +31,12 @@ const supabase = createClient(supabaseUrl, supabaseServiceRole || supabaseAnonKe
 function getRequestSupabaseClient(req) {
   const authHeader = req.headers.authorization || '';
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
-  const key = supabaseServiceRole || supabaseAnonKey;
 
-  return createClient(supabaseUrl, key, {
+  return createClient(supabaseUrl, supabaseAnonKey, {
     auth: { persistSession: false, autoRefreshToken: false },
     global: {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    },
+      headers: token ? { Authorization: `Bearer ${token}` } : {}
+    }
   });
 }
 
@@ -78,35 +77,30 @@ function respondError(res, code, message, status = 400) {
 async function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization || '';
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
-  const headerUserId = String(req.headers['x-user-id'] || '').trim();
 
-  if (!token && !headerUserId) {
+  if (!token) {
+    console.warn('Deposit auth rejected: request missing bearer token.', {
+      path: req.originalUrl,
+      headers: Object.keys(req.headers)
+    });
     return respondError(res, 'UNAUTHORIZED', 'Authentication required.', 401);
   }
 
   try {
-    if (token) {
-      const { data: { user }, error } = await supabase.auth.getUser(token);
-      if (!error && user) {
-        req.user = user;
-        req.supabase = getRequestSupabaseClient(req);
-        return next();
-      }
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    if (error || !user) {
+      console.warn('Deposit auth rejected: invalid bearer token.', {
+        path: req.originalUrl,
+        error: error?.message || 'No user resolved from token'
+      });
+      return respondError(res, 'UNAUTHORIZED', 'Invalid user session.', 401);
     }
 
-    if (headerUserId) {
-      req.user = { id: headerUserId };
-      req.supabase = getRequestSupabaseClient(req);
-      return next();
-    }
-
-    return respondError(res, 'UNAUTHORIZED', 'Invalid user session.', 401);
+    req.user = user;
+    req.supabase = getRequestSupabaseClient(req);
+    return next();
   } catch (error) {
-    if (headerUserId) {
-      req.user = { id: headerUserId };
-      req.supabase = getRequestSupabaseClient(req);
-      return next();
-    }
+    console.error('requireAuth error:', error);
     return respondError(res, 'UNAUTHORIZED', 'Authentication failed.', 401);
   }
 }
@@ -202,6 +196,19 @@ router.post('/deposits', requireAuth, upload.single('proofFile'), async (req, re
     const userId = req.user.id;
     const requestSupabase = req.supabase || getRequestSupabaseClient(req);
 
+    console.log('Deposit submit request received:', {
+      userId,
+      amount,
+      method,
+      referenceId,
+      paymentProofPath: req.body.paymentProofPath || null,
+      filePresent: Boolean(req.file),
+      headers: {
+        authHeaderPresent: Boolean(req.headers.authorization),
+        contentType: req.headers['content-type']
+      }
+    });
+
     if (!amount || amount <= 0) {
       return respondError(res, 'INVALID_AMOUNT', 'A valid deposit amount is required.', 400);
     }
@@ -229,9 +236,21 @@ router.post('/deposits', requireAuth, upload.single('proofFile'), async (req, re
       .single();
 
     if (insertError) {
-      console.error('Deposit insert error:', insertError);
+      console.error('Deposit insert DB error:', {
+        message: insertError.message,
+        details: insertError.details,
+        hint: insertError.hint,
+        code: insertError.code,
+        userId,
+        amount,
+        method,
+        referenceId,
+        proofPath
+      });
       throw insertError;
     }
+
+    console.log('Deposit inserted successfully:', deposit);
 
     res.status(201).json({
       success: true,
@@ -239,7 +258,15 @@ router.post('/deposits', requireAuth, upload.single('proofFile'), async (req, re
       message: 'Deposit submitted successfully and is pending admin approval.',
     });
   } catch (error) {
-    console.error('Deposit submission failed:', error);
+    console.error('Deposit submission failed:', {
+      message: error?.message,
+      details: error?.details,
+      hint: error?.hint,
+      code: error?.code,
+      body: req.body,
+      userId: req.user?.id || null,
+      filePresent: Boolean(req.file)
+    });
     res.status(500).json({ error: 'DEPOSIT_SUBMIT_ERROR', message: 'Unable to submit deposit.' });
   }
 });

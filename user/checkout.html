@@ -738,27 +738,7 @@
             return allowed.includes((mimeType || '').toLowerCase());
         }
 
-        function readStoredSupabaseToken() {
-            try {
-                const storageKeys = Object.keys(localStorage || {});
-                const authKey = storageKeys.find((key) => key.startsWith('sb-') && key.endsWith('-auth-token'));
-                if (!authKey) return '';
-
-                const rawValue = localStorage.getItem(authKey);
-                if (!rawValue) return '';
-
-                const parsed = JSON.parse(rawValue);
-                if (parsed?.access_token) return parsed.access_token;
-                if (Array.isArray(parsed) && parsed[0]?.access_token) return parsed[0].access_token;
-                if (parsed?.currentSession?.access_token) return parsed.currentSession.access_token;
-            } catch (error) {
-                console.warn('Unable to read stored Supabase session token:', error);
-            }
-
-            return '';
-        }
-
-        async function getActiveAccessToken() {
+        async function getValidAccessToken() {
             try {
                 const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
                 if (sessionError) {
@@ -776,11 +756,6 @@
                     return refreshData.session.access_token;
                 }
 
-                const storedToken = readStoredSupabaseToken();
-                if (storedToken) {
-                    return storedToken;
-                }
-
                 const { data: userData, error: userError } = await supabase.auth.getUser();
                 if (userError) {
                     console.warn('Supabase getUser failed:', userError);
@@ -795,7 +770,7 @@
                 console.warn('Unable to resolve active Supabase token:', error);
             }
 
-            return readStoredSupabaseToken();
+            return '';
         }
 
         async function convertAvifToBrowserCompatibleImage(file) {
@@ -1029,11 +1004,16 @@
                 return;
             }
 
-            const accessToken = await getActiveAccessToken();
-            const fallbackUserId = user?.id || localStorage.getItem('capitalnest_user_id') || '';
-
-            if (!accessToken && !fallbackUserId) {
-                alert('Your session is expired. Please log in again.');
+            const accessToken = await getValidAccessToken();
+            if (!accessToken) {
+                console.error('Deposit submission blocked because no valid Supabase access token was available for the signed-in user.', {
+                    userId: user?.id || null,
+                    selectedPlan: planName,
+                    amount,
+                    paymentMethod,
+                    hasScreenshot: Boolean(processedScreenshot)
+                });
+                alert('Your session has expired. Please log in again to continue with the deposit.');
                 window.location.href = '../login.html';
                 return;
             }
@@ -1045,18 +1025,39 @@
             formData.append('paymentProofPath', proofPath);
             formData.append('proofFile', processedScreenshot, processedScreenshot.name);
 
+            console.log('Submitting deposit request:', {
+                userId: user.id,
+                amount,
+                paymentMethod,
+                referenceId: `${planName}-${Date.now()}`,
+                proofPath,
+                timestamp: new Date().toISOString()
+            });
+
             const response = await fetch('/api/deposits', {
                 method: 'POST',
                 headers: {
-                    Authorization: `Bearer ${accessToken || fallbackUserId}`,
-                    'X-User-Id': fallbackUserId || ''
+                    Authorization: `Bearer ${accessToken}`
                 },
                 body: formData,
             });
 
-            const result = await response.json();
+            const result = await response.json().catch(() => ({}));
+            console.log('Deposit API response:', {
+                status: response.status,
+                ok: response.ok,
+                result
+            });
+
             if (!response.ok || !result?.success) {
-                console.error('API deposit submission failed:', result);
+                console.error('API deposit submission failed:', {
+                    status: response.status,
+                    result,
+                    userId: user.id,
+                    amount,
+                    paymentMethod,
+                    proofPath
+                });
                 alert(result?.message || 'Unable to submit deposit for approval.');
                 return;
             }
