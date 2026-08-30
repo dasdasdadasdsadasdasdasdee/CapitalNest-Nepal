@@ -16,6 +16,8 @@ const {
   buildInvestmentRecordKey,
 } = require('./financial-logic');
 
+const { normalizePaymentProofPath, buildPaymentProofUrl } = require('./telegram-bot');
+
 test('wallet balance sums income and subtracts expenses', () => {
   const summary = calculateWalletBalance([
     { type: 'DEPOSIT', amount: 5000 },
@@ -223,9 +225,9 @@ test('client-side active package deduplication keeps distinct purchases separate
   const path = require('node:path');
   const vm = require('node:vm');
 
-  const html = fs.readFileSync(path.join(__dirname, '..', 'user', 'investment.html'), 'utf8');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'user', 'index.html'), 'utf8');
   const start = html.indexOf('function getInvestmentIdentity(item) {');
-  const end = html.indexOf('function renderActivePackage');
+  const end = html.indexOf('function generateReferralCode()');
   const script = html.slice(start, end);
 
   const context = {
@@ -267,4 +269,14 @@ test('client-side active package deduplication keeps distinct purchases separate
       throw new Error('Expected two distinct package purchases, received ' + deduped.length);
     }
   `, context);
+});
+
+test('payment proof URL normalization strips duplicate bucket prefixes and invalid path fragments', () => {
+  assert.equal(normalizePaymentProofPath('payment-proofs/abc123/file.png'), 'abc123/file.png');
+  assert.equal(normalizePaymentProofPath('/payment-proofs/abc123/file.png'), 'abc123/file.png');
+  assert.equal(normalizePaymentProofPath('https://mohigobcssqzywmhndml.supabase.co/storage/v1/object/public/payment-proofs/abc123/file.png'), 'abc123/file.png');
+  assert.equal(normalizePaymentProofPath('https://mohigobcssqzywmhndml.supabase.co/storage/v1/object/public/payment-proofs/abc123/file.png?token=test'), 'abc123/file.png');
+
+  const url = buildPaymentProofUrl('payment-proofs/abc123/file.png');
+  assert.match(url, /^https:\/\/mohigobcssqzywmhndml\.supabase\.co\/storage\/v1\/object\/public\/payment-proofs\/abc123\/file\.png$/);
 });

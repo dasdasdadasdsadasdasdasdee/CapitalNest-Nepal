@@ -16,12 +16,10 @@ let activePollController = null;
 
 if (!botToken) {
   console.warn('TELEGRAM_BOT_TOKEN is missing. Telegram bot will stay disabled.');
-  return;
 }
 
 if (!supabaseUrl || !serviceRoleKey) {
   console.warn('Telegram bot is disabled because SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is missing.');
-  return;
 }
 
 if (configuredSupabaseUrl && configuredSupabaseUrl !== projectSupabaseUrl) {
@@ -131,11 +129,33 @@ function escapeHtml(value) {
     .replace(/"/g, '&quot;');
 }
 
+function normalizePaymentProofPath(proofPath) {
+  if (!proofPath) return '';
+
+  const rawPath = String(proofPath).trim();
+  if (!rawPath) return '';
+
+  const withoutQuery = rawPath.split('?')[0];
+  const withoutHash = withoutQuery.split('#')[0];
+  const normalized = withoutHash
+    .replace(/^https?:\/\/[A-Za-z0-9.-]+(?::\d+)?\/storage\/v1\/object\/(?:public|sign)\/payment-proofs\//i, '')
+    .replace(/^https?:\/\/[A-Za-z0-9.-]+(?::\d+)?\/storage\/v1\/object\/(?:public|sign)\//i, '')
+    .replace(/^\/+/, '')
+    .replace(/^payment-proofs\//i, '')
+    .replace(/^public\/payment-proofs\//i, '')
+    .replace(/^\/+/, '')
+    .replace(/\/+/g, '/');
+
+  return normalized;
+}
+
 function buildPaymentProofUrl(proofPath) {
   if (!proofPath) return '';
   if (/^https?:\/\//i.test(proofPath)) return proofPath;
 
-  const normalizedPath = String(proofPath).replace(/^\/+/, '').replace(/^payment-proofs\//, '');
+  const normalizedPath = normalizePaymentProofPath(proofPath);
+  if (!normalizedPath) return '';
+
   return `${supabaseUrl}/storage/v1/object/public/payment-proofs/${normalizedPath
     .split('/')
     .map((segment) => encodeURIComponent(segment))
@@ -145,7 +165,9 @@ function buildPaymentProofUrl(proofPath) {
 async function getPaymentProofUrl(proofPath) {
   if (!proofPath) return '';
 
-  const normalizedPath = String(proofPath).replace(/^\/+/, '').replace(/^payment-proofs\//, '');
+  const normalizedPath = normalizePaymentProofPath(proofPath);
+  if (!normalizedPath) return '';
+
   try {
     const signedResponse = await supabaseRequest(`/storage/v1/object/sign/payment-proofs/${normalizedPath
       .split('/')
@@ -486,16 +508,18 @@ function stopTelegramBot() {
   console.log('Telegram bot shutdown requested.');
 }
 
-(async () => {
-  try {
-    if (shuttingDown) return;
-    const me = await api('/getMe', { method: 'POST' });
-    console.log(`Telegram bot active: @${me.username || 'unknown'}`);
-    await pollTelegram();
-  } catch (error) {
-    console.error('Failed to start Telegram bot:', error.message);
-    console.warn('Telegram bot startup failed, but the web app will continue to run on Railway.');
-  }
-})();
+if (botToken && supabaseUrl && serviceRoleKey) {
+  (async () => {
+    try {
+      if (shuttingDown) return;
+      const me = await api('/getMe', { method: 'POST' });
+      console.log(`Telegram bot active: @${me.username || 'unknown'}`);
+      await pollTelegram();
+    } catch (error) {
+      console.error('Failed to start Telegram bot:', error.message);
+      console.warn('Telegram bot startup failed, but the web app will continue to run on Railway.');
+    }
+  })();
+}
 
-module.exports = { stopTelegramBot };
+module.exports = { stopTelegramBot, normalizePaymentProofPath, buildPaymentProofUrl, getPaymentProofUrl };
