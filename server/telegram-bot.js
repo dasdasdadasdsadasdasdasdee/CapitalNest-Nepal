@@ -3,11 +3,13 @@ require('dotenv').config();
 const botToken = process.env.TELEGRAM_BOT_TOKEN;
 const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
 const adminUserId = process.env.TELEGRAM_ADMIN_USER_ID;
+const adminSupabaseUserId = process.env.TELEGRAM_ADMIN_SUPABASE_USER_ID;
 const projectSupabaseUrl = 'https://mohigobcssqzywmhndml.supabase.co';
 const configuredSupabaseUrl = process.env.SUPABASE_URL?.replace(/\/$/, '');
 const supabaseUrl = projectSupabaseUrl;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const notifiedInvestmentIds = new Set();
+const notifiedDepositIds = new Set();
 let shuttingDown = false;
 let activePollController = null;
 
@@ -114,6 +116,36 @@ async function getPendingInvestments() {
   });
 }
 
+async function getPendingDeposits() {
+  return supabaseRequest('/rest/v1/deposits?status=eq.PENDING&order=created_at.asc&select=*', {
+    method: 'GET',
+  });
+}
+
+async function getDepositById(depositId) {
+  const data = await supabaseRequest(`/rest/v1/deposits?id=eq.${encodeURIComponent(depositId)}&select=*`, {
+    method: 'GET',
+  });
+
+  return Array.isArray(data) ? data[0] : null;
+}
+
+async function updateDepositStatus(depositId, action, adminId, reason = null) {
+  const endpoint = action === 'approve' ? '/rest/v1/rpc/approve_deposit' : '/rest/v1/rpc/reject_deposit';
+  const body = action === 'approve'
+    ? { p_deposit_id: depositId, p_admin_id: adminSupabaseUserId }
+    : {
+      p_deposit_id: depositId,
+      p_admin_id: adminSupabaseUserId,
+      p_rejection_reason: reason || 'Payment proof could not be verified',
+    };
+
+  return supabaseRequest(endpoint, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
 async function answerCallback(callbackQueryId, text) {
   await api('/answerCallbackQuery', {
     method: 'POST',
@@ -174,8 +206,90 @@ async function notifyPendingInvestments() {
   }
 }
 
+async function notifyPendingDeposits() {
+  if (!adminChatId) return;
+
+  const deposits = await getPendingDeposits();
+  for (const deposit of deposits || []) {
+    if (!deposit.id || notifiedDepositIds.has(deposit.id)) continue;
+
+    const proofPath = deposit.payment_proof_path || '';
+    const message = [
+      '<b>🔔 NEW DEPOSIT VERIFICATION</b>',
+      '━━━━━━━━━━━━━━━━',
+      `💰 Amount: NPR ${Number(deposit.amount || 0).toLocaleString('en-US')}`,
+      `💳 Method: ${deposit.payment_method || 'N/A'}`,
+      `🆔 Deposit ID: ${deposit.id}`,
+      `👤 User ID: ${deposit.user_id || 'N/A'}`,
+      `🖼 Proof Path: ${proofPath || 'Not available'}`,
+      `🕐 Submitted: ${new Date(deposit.created_at || Date.now()).toLocaleString('en-GB')}`,
+      '📌 Status: PENDING',
+    ].join('\n');
+
+    await api('/sendMessage', {
+      method: 'POST',
+      body: JSON.stringify({
+        chat_id: adminChatId,
+        text: message,
+        parse_mode: 'HTML',
+        disable_web_page_preview: true,
+        reply_markup: {
+          inline_keyboard: [[
+            { text: '✅ APPROVE DEPOSIT', callback_data: `deposit:approve:${deposit.id}` },
+            { text: '❌ REJECT DEPOSIT', callback_data: `deposit:reject:${deposit.id}` },
+          ]],
+        },
+      }),
+    });
+
+    notifiedDepositIds.add(deposit.id);
+    console.log(`Telegram deposit approval buttons sent for deposit ${deposit.id}`);
+  }
+}
+
 async function onCallbackQuery(callbackQuery) {
   const payload = callbackQuery?.data || '';
+  const depositMatch = payload.match(/^deposit:(approve|reject):([^:]+)$/);
+  if (depositMatch) {
+    const [, action, depositId] = depositMatch;
+    const fromUserId = callbackQuery?.from?.id;
+    const chatId = callbackQuery?.message?.chat?.id;
+
+    if (!await verifyAdmin(fromUserId, chatId)) {
+      await answerCallback(callbackQuery.id, '❌ Unauthorized admin.');
+      return;
+    }
+
+    const deposit = await getDepositById(depositId);
+    if (!deposit) {
+      await answerCallback(callbackQuery.id, '❌ Deposit not found.');
+      return;
+    }
+
+    if (String(deposit.status).toUpperCase() !== 'PENDING') {
+      await answerCallback(callbackQuery.id, '⚠️ This deposit is no longer pending.');
+      return;
+    }
+
+    if (!adminSupabaseUserId) {
+      console.error('Deposit approval blocked: TELEGRAM_ADMIN_SUPABASE_USER_ID is not configured.');
+      await answerCallback(callbackQuery.id, '⚠️ Admin Supabase ID is not configured.');
+      return;
+    }
+
+    await updateDepositStatus(depositId, action, fromUserId);
+    notifiedDepositIds.add(depositId);
+    await answerCallback(callbackQuery.id, action === 'approve' ? '✅ Deposit approved' : '❌ Deposit rejected');
+    await sendMessage(chatId, [
+      action === 'approve' ? '<b>✅ DEPOSIT APPROVED</b>' : '<b>❌ DEPOSIT REJECTED</b>',
+      '',
+      `💰 Amount: NPR ${Number(deposit.amount || 0).toLocaleString('en-US')}`,
+      `🆔 Deposit ID: ${deposit.id}`,
+      `👤 User ID: ${deposit.user_id || 'N/A'}`,
+    ].join('\n'));
+    return;
+  }
+
   const match = payload.match(/^(approve|reject):([^:]+)$/);
   if (!match) return;
 
@@ -247,6 +361,7 @@ async function pollTelegram() {
   while (!shuttingDown) {
     try {
       await notifyPendingInvestments();
+      await notifyPendingDeposits();
 
       activePollController = new AbortController();
       const updates = await api('/getUpdates', {
