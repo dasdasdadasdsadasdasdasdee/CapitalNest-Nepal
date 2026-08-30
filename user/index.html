@@ -501,6 +501,41 @@
             appearance: none;
         }
 
+        .affiliate-link-row,
+        .affiliate-link-input,
+        .affiliate-link-append,
+        .affiliate-link-button {
+            display: block;
+            visibility: visible;
+            opacity: 1;
+            overflow: visible;
+            z-index: 1;
+        }
+
+        .affiliate-link-row {
+            display: flex;
+            visibility: visible;
+            opacity: 1;
+            overflow: visible;
+        }
+
+        .affiliate-link-input {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            overflow: visible !important;
+            z-index: 1 !important;
+        }
+
+        .affiliate-link-append,
+        .affiliate-link-button {
+            display: block;
+            visibility: visible;
+            opacity: 1;
+            overflow: visible;
+            z-index: 1;
+        }
+
         @media (max-width: 768px) {
             .card-bg2 {
                 padding: 14px;
@@ -571,22 +606,27 @@
                 overflow: visible;
             }
 
+            .affiliate-link-row,
+            .affiliate-link-input,
+            .affiliate-link-append,
+            .affiliate-link-button {
+                display: block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                overflow: visible !important;
+                z-index: 1 !important;
+                max-width: 100% !important;
+                min-width: 0 !important;
+                box-sizing: border-box;
+            }
+
             .affiliate-link-row {
-                display: flex;
+                display: flex !important;
                 flex-direction: column;
                 gap: 0;
                 width: 100%;
                 max-width: 100%;
                 overflow: visible;
-            }
-
-            .affiliate-link-input,
-            .affiliate-link-append,
-            .affiliate-link-button {
-                width: 100%;
-                max-width: 100%;
-                min-width: 0;
-                box-sizing: border-box;
             }
 
             .affiliate-link-input {
@@ -596,6 +636,9 @@
                 padding: 14px 12px !important;
                 min-height: 52px;
                 border-radius: 10px 10px 0 0 !important;
+                display: block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
             }
 
             .affiliate-link-button {
@@ -604,6 +647,7 @@
                 font-weight: 600;
                 padding: 13px 12px !important;
                 line-height: 1.2;
+                display: block !important;
             }
 
             .dashboard-h {
@@ -1233,6 +1277,47 @@
         return `${baseOrigin}${referralPath}`;
     }
 
+    function ensureAffiliateLinkVisible() {
+        const affiliateLinkInput = document.getElementById('affiliateLinkInput');
+        if (!affiliateLinkInput) return;
+
+        const safeCode = (sessionStorage.getItem('capitalnest_local_referral_code') || generateReferralCode());
+        try {
+            sessionStorage.setItem('capitalnest_local_referral_code', safeCode);
+        } catch (error) {
+            console.warn('Unable to cache referral code locally:', error);
+        }
+
+        const fallbackUrl = buildReferralShareUrl(safeCode);
+        if (!affiliateLinkInput.value || affiliateLinkInput.value.trim() === '') {
+            affiliateLinkInput.value = fallbackUrl;
+        }
+
+        const row = affiliateLinkInput.closest('.affiliate-link-row');
+        const append = affiliateLinkInput.closest('.affiliate-link-append');
+        const button = document.getElementById('copyReferralLinkBtn');
+
+        [affiliateLinkInput, row, append, button].forEach((el) => {
+            if (!el) return;
+            el.style.display = 'block';
+            el.style.visibility = 'visible';
+            el.style.opacity = '1';
+            el.style.overflow = 'visible';
+            el.style.zIndex = '1';
+        });
+
+        if (row) {
+            row.style.display = 'flex';
+            row.style.visibility = 'visible';
+            row.style.opacity = '1';
+            row.style.overflow = 'visible';
+        }
+
+        if (button) {
+            button.style.display = 'inline-block';
+        }
+    }
+
     async function copyReferralLink() {
         const affiliateLinkInput = document.getElementById('affiliateLinkInput');
         if (!affiliateLinkInput) return;
@@ -1276,6 +1361,8 @@
         const copyButton = document.getElementById('copyReferralLinkBtn');
 
         if (!affiliateLinkInput || !invitedCountEl || !affiliateBonusEl) return;
+
+        ensureAffiliateLinkVisible();
 
         if (copyButton) {
             copyButton.addEventListener('click', copyReferralLink);
@@ -1361,6 +1448,8 @@
     }
 
     async function loadDashboardData() {
+        ensureAffiliateLinkVisible();
+
         const supabase = window.CAPITALNEST_SUPABASE_CLIENT;
         if (!supabase) return;
 
