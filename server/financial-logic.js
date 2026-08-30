@@ -79,7 +79,7 @@ function isValidWithdrawalAmount(requestedAmount, availableBalance) {
   }
 
   if (numericRequested > numericAvailable) {
-    return 'Requested amount exceeds your available balance.';
+    return 'Your balance is insufficient.';
   }
 
   return true;

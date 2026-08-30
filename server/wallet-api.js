@@ -90,11 +90,35 @@ async function getWalletSummary(userId) {
   const { data: investments = [] } = await supabase
     .from('investments')
     .select('*')
-    .eq('user_id', userId)
-    .eq('status', 'ACTIVE');
+    .eq('user_id', userId);
 
-  const invested = investments.reduce((sum, item) => sum + Number(item.invested_amount || 0), 0);
-  return { ...summary, invested: Number((summary.invested + invested).toFixed(2)) };
+  const activeInvested = investments
+    .filter((item) => String(item.status || '').toUpperCase() === 'ACTIVE')
+    .reduce((sum, item) => sum + Number(item.invested_amount || item.amount || 0), 0);
+
+  const maturedValue = investments
+    .filter((item) => {
+      const status = String(item.status || '').toUpperCase();
+      if (status === 'MATURING' || status === 'MATURED') return true;
+      if (!item.created_at || !item.duration_days) return false;
+      const createdAt = new Date(item.created_at);
+      const durationMs = Number(item.duration_days || 0) * 24 * 60 * 60 * 1000;
+      if (Number.isNaN(createdAt.getTime())) return false;
+      return Date.now() - createdAt.getTime() >= durationMs;
+    })
+    .reduce((sum, item) => sum + Number(item.invested_amount || item.amount || 0), 0);
+
+  const maturedReturnTransactions = transactions
+    .filter((txn) => ['INVESTMENT_RETURN', 'MATURITY_PAYOUT', 'MATURED_INVESTMENT'].includes(String(txn.type || '').toUpperCase()))
+    .reduce((sum, txn) => sum + Number(txn.amount || 0), 0);
+
+  const availableBalance = Number((summary.available + Math.max(maturedValue - maturedReturnTransactions, 0)).toFixed(2));
+
+  return {
+    ...summary,
+    available: availableBalance,
+    invested: Number((summary.invested + activeInvested).toFixed(2)),
+  };
 }
 
 router.get('/wallet', requireAuth, async (req, res) => {
@@ -283,7 +307,7 @@ router.post('/withdrawals', requireAuth, upload.single('qrImage'), async (req, r
 
     const summary = await getWalletSummary(userId);
     if (amount > summary.available) {
-      return respondError(res, 'INSUFFICIENT_BALANCE', 'Requested amount exceeds your available balance.', 400);
+      return respondError(res, 'INSUFFICIENT_BALANCE', 'Your balance is insufficient.', 400);
     }
 
     const existingPending = await supabase
