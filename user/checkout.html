@@ -734,7 +734,7 @@
                 console.warn('Unable to read the current Supabase auth session:', error);
             }
 
-            if (!session?.access_token) {
+            async function refreshCurrentSession() {
                 try {
                     const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
                     if (refreshError) {
@@ -754,17 +754,24 @@
                     if (userError) {
                         lastError = userError;
                         console.warn('Supabase user validation failed for the current session:', userError);
+                        session = null;
+                    } else {
+                        user = userData?.user || null;
                     }
-                    user = userData?.user || null;
                 } catch (error) {
                     lastError = error;
                     console.warn('Supabase getUser threw while validating the auth state:', error);
+                    session = null;
                 }
+            }
+
+            if (!session?.access_token || !user) {
+                await refreshCurrentSession();
             }
 
             if (!user && session?.access_token) {
                 try {
-                    const { data: fallbackUserData, error: fallbackUserError } = await supabase.auth.getUser();
+                    const { data: fallbackUserData, error: fallbackUserError } = await supabase.auth.getUser(session.access_token);
                     if (fallbackUserError) {
                         lastError = fallbackUserError;
                         console.warn('Fallback Supabase getUser failed:', fallbackUserError);
