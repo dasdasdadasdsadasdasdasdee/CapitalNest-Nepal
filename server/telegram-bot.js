@@ -10,6 +10,7 @@ const supabaseUrl = projectSupabaseUrl;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const notifiedInvestmentIds = new Set();
 const notifiedDepositIds = new Set();
+let resolvedAdminSupabaseUserId = null;
 let shuttingDown = false;
 let activePollController = null;
 
@@ -157,13 +158,35 @@ async function getUserEmail(userId) {
   return Array.isArray(data) ? data[0]?.email || 'N/A' : 'N/A';
 }
 
+async function getAdminSupabaseUserId() {
+  if (resolvedAdminSupabaseUserId) return resolvedAdminSupabaseUserId;
+
+  if (adminSupabaseUserId && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(adminSupabaseUserId)) {
+    resolvedAdminSupabaseUserId = adminSupabaseUserId;
+    return resolvedAdminSupabaseUserId;
+  }
+
+  const admins = await supabaseRequest('/rest/v1/profiles?is_admin=eq.true&select=id&limit=1', {
+    method: 'GET',
+  });
+  const discoveredAdminId = Array.isArray(admins) ? admins[0]?.id : null;
+  if (!discoveredAdminId) {
+    throw new Error('No admin profile with is_admin=true was found in public.profiles.');
+  }
+
+  resolvedAdminSupabaseUserId = discoveredAdminId;
+  console.log('Resolved Telegram approval admin from public.profiles.');
+  return resolvedAdminSupabaseUserId;
+}
+
 async function updateDepositStatus(depositId, action, adminId, reason = null) {
   const endpoint = action === 'approve' ? '/rest/v1/rpc/approve_deposit' : '/rest/v1/rpc/reject_deposit';
+  const approvalAdminId = await getAdminSupabaseUserId();
   const body = action === 'approve'
-    ? { p_deposit_id: depositId, p_admin_id: adminSupabaseUserId }
+    ? { p_deposit_id: depositId, p_admin_id: approvalAdminId }
     : {
       p_deposit_id: depositId,
-      p_admin_id: adminSupabaseUserId,
+      p_admin_id: approvalAdminId,
       p_rejection_reason: reason || 'Payment proof could not be verified',
     };
 
@@ -299,12 +322,6 @@ async function onCallbackQuery(callbackQuery) {
 
     if (String(deposit.status).toUpperCase() !== 'PENDING') {
       await answerCallback(callbackQuery.id, '⚠️ This deposit is no longer pending.');
-      return;
-    }
-
-    if (!adminSupabaseUserId) {
-      console.error('Deposit approval blocked: TELEGRAM_ADMIN_SUPABASE_USER_ID is not configured.');
-      await answerCallback(callbackQuery.id, '⚠️ Admin Supabase ID is not configured.');
       return;
     }
 
