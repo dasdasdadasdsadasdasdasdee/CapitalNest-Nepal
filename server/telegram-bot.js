@@ -122,12 +122,39 @@ async function getPendingDeposits() {
   });
 }
 
+function escapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function buildPaymentProofUrl(proofPath) {
+  if (!proofPath) return '';
+  if (/^https?:\/\//i.test(proofPath)) return proofPath;
+
+  const normalizedPath = String(proofPath).replace(/^\/+/, '').replace(/^payment-proofs\//, '');
+  return `${supabaseUrl}/storage/v1/object/public/payment-proofs/${normalizedPath
+    .split('/')
+    .map((segment) => encodeURIComponent(segment))
+    .join('/')}`;
+}
+
 async function getDepositById(depositId) {
   const data = await supabaseRequest(`/rest/v1/deposits?id=eq.${encodeURIComponent(depositId)}&select=*`, {
     method: 'GET',
   });
 
   return Array.isArray(data) ? data[0] : null;
+}
+
+async function getUserEmail(userId) {
+  const data = await supabaseRequest(`/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=email`, {
+    method: 'GET',
+  });
+
+  return Array.isArray(data) ? data[0]?.email || 'N/A' : 'N/A';
 }
 
 async function updateDepositStatus(depositId, action, adminId, reason = null) {
@@ -172,7 +199,7 @@ async function notifyPendingInvestments() {
   for (const investment of investments || []) {
     if (!investment.id || notifiedInvestmentIds.has(investment.id)) continue;
 
-    const proofUrl = investment.payment_proof_url || investment.payment_proof_path || '';
+    const proofUrl = buildPaymentProofUrl(investment.payment_proof_url || investment.payment_proof_path || '');
     const message = [
       '<b>🔔 NEW PAYMENT VERIFICATION</b>',
       '━━━━━━━━━━━━━━━━',
@@ -180,7 +207,7 @@ async function notifyPendingInvestments() {
       `📦 Plan: ${investment.investment_plan || investment.plan_name || 'Investment'}`,
       `📧 Email: ${investment.email || investment.user_email || 'N/A'}`,
       `🆔 Investment ID: ${investment.id}`,
-      `🖼 Proof: ${proofUrl ? `<a href="${proofUrl}">View Payment Proof</a>` : 'Not available'}`,
+      `🖼 Proof: ${proofUrl ? `<a href="${escapeHtml(proofUrl)}">View Payment Proof</a>` : 'Not available'}`,
       '',
       '📌 Status: PENDING',
     ].join('\n');
@@ -213,15 +240,19 @@ async function notifyPendingDeposits() {
   for (const deposit of deposits || []) {
     if (!deposit.id || notifiedDepositIds.has(deposit.id)) continue;
 
-    const proofPath = deposit.payment_proof_path || '';
+    const proofUrl = buildPaymentProofUrl(deposit.payment_proof_path || '');
+    const email = await getUserEmail(deposit.user_id);
+    const planName = String(deposit.reference_id || '').split('-')[0] || 'Investment';
     const message = [
       '<b>🔔 NEW DEPOSIT VERIFICATION</b>',
       '━━━━━━━━━━━━━━━━',
       `💰 Amount: NPR ${Number(deposit.amount || 0).toLocaleString('en-US')}`,
-      `💳 Method: ${deposit.payment_method || 'N/A'}`,
+      `📦 Plan: ${escapeHtml(planName)}`,
+      `💳 Method: ${escapeHtml(deposit.payment_method || 'N/A')}`,
+      `📧 Email: ${escapeHtml(email)}`,
       `🆔 Deposit ID: ${deposit.id}`,
       `👤 User ID: ${deposit.user_id || 'N/A'}`,
-      `🖼 Proof Path: ${proofPath || 'Not available'}`,
+      `🖼 Proof: ${proofUrl ? `<a href="${escapeHtml(proofUrl)}">View Payment Proof</a>` : 'Not available'}`,
       `🕐 Submitted: ${new Date(deposit.created_at || Date.now()).toLocaleString('en-GB')}`,
       '📌 Status: PENDING',
     ].join('\n');
