@@ -1128,41 +1128,7 @@
             const planName = selectedPlan.name || 'Starter';
             const paymentMethod = (checkoutData.paymentMethod || 'esewa').toUpperCase();
 
-            let proofPath = null;
-            try {
-                console.log('Uploading payment proof for deposit approval:', {
-                    originalFileName: screenshot.name,
-                    originalMimeType: screenshot.type,
-                    convertedMimeType: convertedMimeType,
-                    finalUploadFileName: processedScreenshot.name,
-                    bucketName: 'payment-proofs'
-                });
-
-                proofPath = buildPaymentProofPath(user.id, processedScreenshot);
-                const { data: uploadData, error: uploadError } = await supabase.storage
-                    .from('payment-proofs')
-                    .upload(proofPath, processedScreenshot, {
-                        cacheControl: '3600',
-                        upsert: false,
-                        contentType: processedScreenshot.type || 'image/png'
-                    });
-
-                if (uploadError) {
-                    console.error('Exact Supabase Storage error:', uploadError);
-                    throw uploadError;
-                }
-
-                console.log('Payment proof uploaded successfully:', {
-                    uploadedPath: uploadData?.path,
-                    finalUploadFileName: processedScreenshot.name,
-                    bucketName: 'payment-proofs'
-                });
-            } catch (uploadError) {
-                console.error('Payment proof upload failed:', uploadError);
-                const errorMessage = uploadError?.message || 'Unknown Supabase storage error';
-                alert(`Payment screenshot upload failed.\n\nDetails: ${errorMessage}\n\nFix the Supabase Storage bucket named "payment-proofs" and its policies, then try again.`);
-                return;
-            }
+            const proofPath = buildPaymentProofPath(user.id, processedScreenshot);
 
             const accessToken = authState.session.access_token;
             if (!accessToken) {

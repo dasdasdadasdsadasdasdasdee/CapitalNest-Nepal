@@ -255,12 +255,20 @@
         
         async function getSignedProofUrl(path) {
             if (!path) return null;
+            const normalizedPath = String(path)
+                .trim()
+                .replace(/^\/+/, '')
+                .replace(/^payment-proofs\//i, '')
+                .replace(/^public\/payment-proofs\//i, '');
+
+            if (!normalizedPath) return null;
+
             const { data, error } = await supabase.storage
                 .from('payment-proofs')
-                .createSignedUrl(path, 3600);
+                .createSignedUrl(normalizedPath, 3600);
 
             if (error || !data?.signedUrl) {
-                console.warn('Unable to create signed URL for proof:', error || path);
+                console.warn('Unable to create signed URL for proof:', error || normalizedPath);
                 return null;
             }
 

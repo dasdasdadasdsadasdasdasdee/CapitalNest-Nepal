@@ -274,13 +274,9 @@ router.post('/deposits', requireAuth, upload.single('proofFile'), async (req, re
     }
 
     stage = 'deposit payload preparation';
-    let proofPath = String(req.body.paymentProofPath || '').trim().replace(/^\/+/, '') || null;
-    if (proofPath?.startsWith('payment-proofs/')) {
-      proofPath = proofPath.slice('payment-proofs/'.length);
-    }
-
+    let proofPath = null;
     if (req.file) {
-      proofPath = proofPath || `${userId}/${req.file.filename}`;
+      proofPath = `${userId}/${req.file.filename}`;
       const proofBytes = fs.readFileSync(req.file.path);
       stage = 'Supabase payment proof upload';
       const { data: proofUpload, error: proofUploadError } = await requestSupabase.storage
