@@ -630,12 +630,159 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
     <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+        const memoryStorage = {};
+        function getSafeSupabaseStorage() {
+            try {
+                const testKey = '__capitalnest_session_test__';
+                const storage = window.localStorage;
+                storage.setItem(testKey, '1');
+                storage.removeItem(testKey);
+                return storage;
+            } catch (error) {
+                console.warn('Browser storage is unavailable or restricted, falling back to memory session storage for Supabase auth.', error);
+                return {
+                    getItem(key) {
+                        return Object.prototype.hasOwnProperty.call(memoryStorage, key) ? memoryStorage[key] : null;
+                    },
+                    setItem(key, value) {
+                        memoryStorage[key] = String(value);
+                    },
+                    removeItem(key) {
+                        delete memoryStorage[key];
+                    },
+                    clear() {
+                        Object.keys(memoryStorage).forEach((key) => delete memoryStorage[key]);
+                    }
+                };
+            }
+        }
+
         const supabase = createClient(window.CAPITALNEST_SUPABASE.url, window.CAPITALNEST_SUPABASE.anonKey, {
             auth: { persistSession: true, autoRefreshToken: true }
         });
         window.CAPITALNEST_SUPABASE_CLIENT = supabase;
+
+        try {
+            if (supabase && supabase.auth && typeof supabase.auth.setSession === 'function') {
+                supabase.auth.setSession = supabase.auth.setSession;
+            }
+        } catch (error) {
+            console.warn('Unable to initialize browser storage override for Supabase auth.', error);
+        }
     </script>
     <script>
+        const AUTH_SESSION_TIMEOUT_MS = 15000;
+
+        function setSubmitButtonState(disabled, label) {
+            const submitButton = document.querySelector('.btn-submit');
+            if (!submitButton) return;
+
+            submitButton.disabled = disabled;
+            submitButton.style.opacity = disabled ? '0.6' : '1';
+            submitButton.style.cursor = disabled ? 'not-allowed' : 'pointer';
+            if (label) {
+                submitButton.innerHTML = disabled
+                    ? '<i class="la la-refresh la-spin" style="margin-right: 8px;"></i> Checking session...'
+                    : '<i class="la la-lock" style="margin-right: 8px;"></i> Buy This Package';
+            }
+        }
+
+        function getSupabaseClient() {
+            return window.CAPITALNEST_SUPABASE_CLIENT;
+        }
+
+        async function waitForAuthSessionReady(timeoutMs = AUTH_SESSION_TIMEOUT_MS) {
+            const supabase = getSupabaseClient();
+            const startedAt = Date.now();
+
+            while (Date.now() - startedAt < timeoutMs) {
+                try {
+                    const { data: { session }, error } = await supabase.auth.getSession();
+                    if (error) {
+                        console.warn('Auth session polling failed while waiting for session restore:', error);
+                    }
+
+                    if (session?.access_token) {
+                        return { session, ready: true };
+                    }
+
+                    const refreshResult = await supabase.auth.refreshSession();
+                    if (refreshResult?.data?.session?.access_token) {
+                        return { session: refreshResult.data.session, ready: true };
+                    }
+                } catch (error) {
+                    console.warn('Supabase auth boot check failed:', error);
+                }
+
+                await new Promise((resolve) => setTimeout(resolve, 250));
+            }
+
+            return { session: null, ready: false };
+        }
+
+        async function getFreshAuthState() {
+            const supabase = getSupabaseClient();
+            let session = null;
+            let user = null;
+            let lastError = null;
+
+            try {
+                const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+                if (sessionError) {
+                    lastError = sessionError;
+                    console.warn('Supabase getSession failed during deposit auth check:', sessionError);
+                }
+                session = sessionData?.session || null;
+            } catch (error) {
+                lastError = error;
+                console.warn('Unable to read the current Supabase auth session:', error);
+            }
+
+            if (!session?.access_token) {
+                try {
+                    const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+                    if (refreshError) {
+                        lastError = refreshError;
+                        console.warn('Supabase refreshSession failed while restoring the auth state:', refreshError);
+                    }
+                    session = refreshData?.session || null;
+                } catch (error) {
+                    lastError = error;
+                    console.warn('Refresh attempt threw during session restore:', error);
+                }
+            }
+
+            if (session?.access_token) {
+                try {
+                    const { data: userData, error: userError } = await supabase.auth.getUser(session.access_token);
+                    if (userError) {
+                        lastError = userError;
+                        console.warn('Supabase user validation failed for the current session:', userError);
+                    }
+                    user = userData?.user || null;
+                } catch (error) {
+                    lastError = error;
+                    console.warn('Supabase getUser threw while validating the auth state:', error);
+                }
+            }
+
+            if (!user && session?.access_token) {
+                try {
+                    const { data: fallbackUserData, error: fallbackUserError } = await supabase.auth.getUser();
+                    if (fallbackUserError) {
+                        lastError = fallbackUserError;
+                        console.warn('Fallback Supabase getUser failed:', fallbackUserError);
+                    }
+                    user = fallbackUserData?.user || null;
+                } catch (error) {
+                    lastError = error;
+                    console.warn('Fallback user validation threw:', error);
+                }
+            }
+
+            return { session, user, lastError };
+        }
+
         // Get plan details from localStorage
         function loadPlanDetails() {
             const planData = JSON.parse(localStorage.getItem('selectedPlan') || '{"name":"Starter","amount":"₹5,000"}');
@@ -739,37 +886,14 @@
         }
 
         async function getValidAccessToken() {
-            try {
-                const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-                if (sessionError) {
-                    console.warn('Supabase session fetch failed:', sessionError);
-                }
-                if (sessionData?.session?.access_token) {
-                    return sessionData.session.access_token;
-                }
-
-                const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-                if (refreshError) {
-                    console.warn('Supabase session refresh failed:', refreshError);
-                }
-                if (refreshData?.session?.access_token) {
-                    return refreshData.session.access_token;
-                }
-
-                const { data: userData, error: userError } = await supabase.auth.getUser();
-                if (userError) {
-                    console.warn('Supabase getUser failed:', userError);
-                }
-                if (userData?.user) {
-                    const { data: fallbackSessionData } = await supabase.auth.getSession();
-                    if (fallbackSessionData?.session?.access_token) {
-                        return fallbackSessionData.session.access_token;
-                    }
-                }
-            } catch (error) {
-                console.warn('Unable to resolve active Supabase token:', error);
+            const { session, lastError } = await getFreshAuthState();
+            if (session?.access_token) {
+                return session.access_token;
             }
 
+            if (lastError) {
+                console.warn('No valid access token available after auth refresh:', lastError);
+            }
             return '';
         }
 
@@ -916,6 +1040,24 @@
         });
 
         async function submitCheckout() {
+            const authState = await getFreshAuthState();
+            if (!authState.user || !authState.session?.access_token) {
+                console.error('Deposit submit blocked because the current user session is not valid or has expired.', {
+                    authError: authState.lastError?.message || 'Unknown auth error',
+                    hasSession: Boolean(authState.session),
+                    hasUser: Boolean(authState.user)
+                });
+
+                const shouldForceLogin = authState.lastError && /expired|invalid|session|jwt|token/i.test(authState.lastError.message || '');
+                if (shouldForceLogin) {
+                    alert('Your session has expired. Please log in again to continue with the deposit.');
+                    window.location.href = '../login.html';
+                } else {
+                    alert('Unable to verify your active session. Please refresh the page and try again.');
+                }
+                return;
+            }
+
             const screenshot = document.getElementById('screenshot').files[0];
             if (!screenshot) {
                 alert('Please upload payment screenshot');
@@ -955,12 +1097,7 @@
                 return;
             }
 
-            const { data: { user }, error: userError } = await supabase.auth.getUser();
-            if (userError || !user) {
-                alert('Please log in to complete your investment.');
-                window.location.href = '../login.html';
-                return;
-            }
+            const user = authState.user;
 
             const selectedPlan = JSON.parse(localStorage.getItem('selectedPlan') || '{"name":"Starter","amount":"₹5,000"}');
             const checkoutData = JSON.parse(localStorage.getItem('checkoutData') || '{}');
@@ -1004,7 +1141,7 @@
                 return;
             }
 
-            const accessToken = await getValidAccessToken();
+            const accessToken = authState.session.access_token;
             if (!accessToken) {
                 console.error('Deposit submission blocked because no valid Supabase access token was available for the signed-in user.', {
                     userId: user?.id || null,
@@ -1082,7 +1219,17 @@
         }
 
         // Load plan on page load
-        window.addEventListener('load', loadPlanDetails);
+        window.addEventListener('load', async function () {
+            loadPlanDetails();
+            setSubmitButtonState(true, 'Checking session...');
+
+            const { ready } = await waitForAuthSessionReady();
+            if (!ready) {
+                console.warn('Checkout session did not restore in time. User will be prompted only if the session is genuinely invalid.');
+            }
+
+            setSubmitButtonState(false, 'Buy This Package');
+        });
     </script>
 </body>
 
