@@ -112,13 +112,13 @@ async function updateInvestmentStatus(investmentId, updateFields) {
 }
 
 async function getPendingInvestments() {
-  return supabaseRequest('/rest/v1/investments?status=eq.pending&order=created_at.asc&select=*', {
+  return supabaseRequest('/rest/v1/investments?status=eq.pending&telegram_notified_at=is.null&order=created_at.asc&select=*', {
     method: 'GET',
   });
 }
 
 async function getPendingDeposits() {
-  return supabaseRequest('/rest/v1/deposits?status=eq.PENDING&order=created_at.asc&select=*', {
+  return supabaseRequest('/rest/v1/deposits?status=eq.PENDING&telegram_notified_at=is.null&order=created_at.asc&select=*', {
     method: 'GET',
   });
 }
@@ -179,6 +179,14 @@ async function getUserEmail(userId) {
   });
 
   return Array.isArray(data) ? data[0]?.email || 'N/A' : 'N/A';
+}
+
+async function markTelegramNotified(table, id) {
+  await supabaseRequest(`/rest/v1/${table}?id=eq.${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: { Prefer: 'return=minimal' },
+    body: JSON.stringify({ telegram_notified_at: new Date().toISOString() }),
+  });
 }
 
 async function getAdminSupabaseUserId() {
@@ -275,6 +283,7 @@ async function notifyPendingInvestments() {
     });
 
     notifiedInvestmentIds.add(investment.id);
+    await markTelegramNotified('investments', investment.id);
     console.log(`Telegram approval buttons sent for investment ${investment.id}`);
   }
 }
@@ -320,6 +329,7 @@ async function notifyPendingDeposits() {
     });
 
     notifiedDepositIds.add(deposit.id);
+    await markTelegramNotified('deposits', deposit.id);
     console.log(`Telegram deposit approval buttons sent for deposit ${deposit.id}`);
   }
 }
