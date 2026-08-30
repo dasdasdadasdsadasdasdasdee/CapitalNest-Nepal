@@ -140,14 +140,13 @@
     const queries = await Promise.all([
       supabase.from('transactions').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
       supabase.from('user_investments').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-      supabase.from('user_balances').select('*').eq('user_id', user.id).maybeSingle(),
       supabase.from('investments').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
     ]);
 
     const transactions = queries[0]?.data || [];
     const userInvestments = queries[1]?.data || [];
-    const balanceRecord = queries[2]?.data || null;
-    const legacyInvestments = queries[3]?.data || [];
+    const balanceRecord = null;
+    const legacyInvestments = queries[2]?.data || [];
 
     return calculateSummary({
       transactions,
@@ -177,9 +176,6 @@
 
     state.subscription
       .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions', filter: `user_id=eq.${state.userId}` }, () => {
-        refreshFinancialSummary();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_balances', filter: `user_id=eq.${state.userId}` }, () => {
         refreshFinancialSummary();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'user_investments', filter: `user_id=eq.${state.userId}` }, () => {

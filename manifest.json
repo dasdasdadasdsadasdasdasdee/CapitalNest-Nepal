@@ -1,0 +1,9 @@
+{
+  "name": "CapitalNest Nepal",
+  "short_name": "CapitalNest",
+  "start_url": "/home.html",
+  "display": "standalone",
+  "background_color": "#f8f9fa",
+  "theme_color": "#2a30fe",
+  "icons": []
+}

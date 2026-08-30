@@ -19,9 +19,6 @@ class RealtimeBalanceSync {
   async init(userId) {
     this.currentUserId = userId;
     
-    // Subscribe to balance changes
-    this.subscribeToBalanceChanges(userId);
-    
     // Subscribe to transaction updates
     this.subscribeToTransactionUpdates(userId);
     
@@ -29,29 +26,6 @@ class RealtimeBalanceSync {
     this.subscribeToPaymentApprovals(userId);
     
     console.log('✅ Real-time sync initialized for user:', userId);
-  }
-
-  /**
-   * Subscribe to user balance changes
-   */
-  subscribeToBalanceChanges(userId) {
-    const subscription = this.supabase
-      .from('user_balances')
-      .on('UPDATE', (payload) => {
-        if (payload.new.user_id === userId) {
-          this.emit('balance-updated', payload.new);
-          console.log('💰 Balance updated:', payload.new);
-        }
-      })
-      .on('INSERT', (payload) => {
-        if (payload.new.user_id === userId) {
-          this.emit('balance-created', payload.new);
-          console.log('💰 Balance created:', payload.new);
-        }
-      })
-      .subscribe();
-    
-    this.subscriptions.push(subscription);
   }
 
   /**
@@ -129,19 +103,7 @@ class RealtimeBalanceSync {
    * Get current balance for user
    */
   async getBalance() {
-    try {
-      const { data, error } = await this.supabase
-        .from('user_balances')
-        .select('*')
-        .eq('user_id', this.currentUserId)
-        .single();
-      
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error fetching balance:', error);
-      return null;
-    }
+    return null;
   }
 
   /**
