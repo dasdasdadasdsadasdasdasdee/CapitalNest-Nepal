@@ -842,6 +842,9 @@
             });
 
             await loadInvestmentPageData();
+            window.setInterval(() => {
+                loadInvestmentPageData().catch((error) => console.warn('Investment refresh failed:', error));
+            }, 60 * 1000);
         });
     </script>
 </body>
