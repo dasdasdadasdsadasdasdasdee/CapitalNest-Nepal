@@ -738,6 +738,26 @@
             return allowed.includes((mimeType || '').toLowerCase());
         }
 
+        function readStoredSupabaseToken() {
+            try {
+                const storageKeys = Object.keys(localStorage || {});
+                const authKey = storageKeys.find((key) => key.startsWith('sb-') && key.endsWith('-auth-token'));
+                if (!authKey) return '';
+
+                const rawValue = localStorage.getItem(authKey);
+                if (!rawValue) return '';
+
+                const parsed = JSON.parse(rawValue);
+                if (parsed?.access_token) return parsed.access_token;
+                if (Array.isArray(parsed) && parsed[0]?.access_token) return parsed[0].access_token;
+                if (parsed?.currentSession?.access_token) return parsed.currentSession.access_token;
+            } catch (error) {
+                console.warn('Unable to read stored Supabase session token:', error);
+            }
+
+            return '';
+        }
+
         async function getActiveAccessToken() {
             try {
                 const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
@@ -756,6 +776,11 @@
                     return refreshData.session.access_token;
                 }
 
+                const storedToken = readStoredSupabaseToken();
+                if (storedToken) {
+                    return storedToken;
+                }
+
                 const { data: userData, error: userError } = await supabase.auth.getUser();
                 if (userError) {
                     console.warn('Supabase getUser failed:', userError);
@@ -770,7 +795,7 @@
                 console.warn('Unable to resolve active Supabase token:', error);
             }
 
-            return '';
+            return readStoredSupabaseToken();
         }
 
         async function convertAvifToBrowserCompatibleImage(file) {
