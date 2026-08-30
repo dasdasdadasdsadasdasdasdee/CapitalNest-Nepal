@@ -2,9 +2,19 @@ require('dotenv').config();
 
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
+const walletApi = require('./server/wallet-api');
 const app = express();
 
 const PORT = process.env.PORT || 3000;
+const privateUploadDir = path.join(__dirname, 'private', 'uploads');
+fs.mkdirSync(privateUploadDir, { recursive: true });
+
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+app.use('/uploads', express.static(privateUploadDir));
+app.use('/api', walletApi);
 
 // Serve static files from the project root.
 app.use(express.static(path.join(__dirname)));
@@ -21,6 +31,10 @@ app.get('/login', (req, res) => {
 
 // Fallback for other frontend routes to the home page instead of the login screen.
 app.use((req, res) => {
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ error: 'API_NOT_FOUND' });
+  }
+
   res.sendFile(path.join(__dirname, 'home.html'));
 });
 
