@@ -256,9 +256,39 @@ router.post('/deposits', requireAuth, upload.single('proofFile'), async (req, re
     }
 
     stage = 'deposit payload preparation';
-    let proofPath = req.body.paymentProofPath || null;
-    if (!proofPath && req.file) {
-      proofPath = `payment-proofs/${userId}/${req.file.filename}`;
+    let proofPath = String(req.body.paymentProofPath || '').trim().replace(/^\/+/, '') || null;
+    if (proofPath?.startsWith('payment-proofs/')) {
+      proofPath = proofPath.slice('payment-proofs/'.length);
+    }
+
+    if (req.file) {
+      proofPath = proofPath || `${userId}/${req.file.filename}`;
+      const proofBytes = fs.readFileSync(req.file.path);
+      stage = 'Supabase payment proof upload';
+      const { data: proofUpload, error: proofUploadError } = await requestSupabase.storage
+        .from('payment-proofs')
+        .upload(proofPath, proofBytes, {
+          cacheControl: '3600',
+          contentType: req.file.mimetype,
+          upsert: true,
+        });
+
+      if (proofUploadError) {
+        console.error('Payment proof storage upload error:', {
+          message: proofUploadError.message,
+          details: proofUploadError.details,
+          hint: proofUploadError.hint,
+          code: proofUploadError.statusCode || proofUploadError.code,
+          userId,
+          proofPath,
+          fileName: req.file.originalname,
+          fileType: req.file.mimetype,
+        });
+        throw proofUploadError;
+      }
+
+      proofPath = proofUpload?.path || proofPath;
+      console.log('Payment proof stored in Supabase:', { proofPath, userId });
     }
 
     stage = 'Supabase deposits insert';
