@@ -16,8 +16,12 @@ const {
 } = require('./financial-logic');
 
 const router = express.Router();
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseServiceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseUrl = process.env.SUPABASE_URL || 'https://mohigobcssqzywmhndml.supabase.co';
+const supabaseServiceRole = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || 'sb_publishable_MRVoyKc48ERptjd1G9l08g_3YTAleje';
+
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  console.warn('Supabase environment variables are missing in Railway. Falling back to the configured project defaults for auth and deposit processing.');
+}
 
 const supabase = createClient(supabaseUrl, supabaseServiceRole, {
   auth: { persistSession: false, autoRefreshToken: false },
