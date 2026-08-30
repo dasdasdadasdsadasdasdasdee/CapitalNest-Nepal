@@ -13,8 +13,14 @@
             align-items: center;
             justify-content: center;
             background: linear-gradient(135deg, #0f172a 0%, #1a1d2d 100%);
-            font-family: Arial, Helvetica, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
             color: #1f2937;
+        }
+
+        input,
+        select,
+        button {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
         }
 
         .auth-shell {
@@ -280,9 +286,26 @@
         }
 
         @media (max-width: 480px) {
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+            }
+
             .auth-shell {
                 padding: 22px 18px 18px;
                 border-radius: 16px;
+            }
+
+            .field-label,
+            .auth-title,
+            .bottom-text,
+            .home-link,
+            .invite-input,
+            .phone-input,
+            .country-select,
+            .captcha-input,
+            .password-input,
+            .confirm-password-input {
+                font-size: 16px;
             }
 
             .country-select {
@@ -293,6 +316,16 @@
                 width: 96px;
                 font-size: 22px;
                 letter-spacing: 5px;
+            }
+
+            .invite-input,
+            .phone-input,
+            .captcha-input,
+            .password-input,
+            .confirm-password-input,
+            .country-select {
+                -webkit-appearance: none;
+                appearance: none;
             }
         }
     </style>
