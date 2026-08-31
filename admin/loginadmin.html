@@ -68,13 +68,23 @@
                 const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
                 if (signInError) throw signInError;
 
-                const { data: adminUser, error: profileError } = await supabase
+                const { data: adminUser, error: adminError } = await supabase
                     .from('admin_users')
                     .select('is_active')
                     .eq('user_id', authData.user.id)
                     .maybeSingle();
-                if (profileError) throw profileError;
-                if (!adminUser?.is_active) {
+
+                const { data: profileUser, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('is_admin')
+                    .eq('id', authData.user.id)
+                    .maybeSingle();
+
+                if (adminError && !['PGRST116', '42P01', '42703'].includes(adminError.code)) throw adminError;
+                if (profileError && !['PGRST116', '42P01', '42703'].includes(profileError.code)) throw profileError;
+
+                const isAdmin = adminUser?.is_active === true || profileUser?.is_admin === true;
+                if (!isAdmin) {
                     await supabase.auth.signOut();
                     throw new Error('This account does not have administrator access.');
                 }

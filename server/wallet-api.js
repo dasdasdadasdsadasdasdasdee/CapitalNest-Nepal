@@ -18,13 +18,14 @@ const {
 const router = express.Router();
 const projectSupabaseUrl = 'https://mohigobcssqzywmhndml.supabase.co';
 const configuredSupabaseUrl = process.env.SUPABASE_URL?.replace(/\/$/, '');
-const supabaseUrl = projectSupabaseUrl;
+const configuredSupabaseAnonKey = process.env.SUPABASE_ANON_KEY || 'sb_publishable_MRVoyKc48ERptjd1G9l08g_3YTAleje';
+const supabaseUrl = configuredSupabaseUrl || projectSupabaseUrl;
 
 // Use service role key if available, regardless of URL mismatch
 // This allows using the key even if .env has outdated URL
 const supabaseServiceRole = process.env.SUPABASE_SERVICE_ROLE_KEY || null;
 
-const supabaseAnonKey = 'sb_publishable_MRVoyKc48ERptjd1G9l08g_3YTAleje';
+const supabaseAnonKey = configuredSupabaseAnonKey;
 
 if (configuredSupabaseUrl && configuredSupabaseUrl !== projectSupabaseUrl) {
   console.warn(`Configured SUPABASE_URL (${configuredSupabaseUrl}) differs from project URL (${projectSupabaseUrl}). Using project URL.`);
@@ -193,14 +194,28 @@ async function requireAuth(req, res, next) {
 }
 
 async function isAdminUser(userId) {
-  const { data, error } = await supabase
+  const { data: adminData, error: adminError } = await supabase
     .from('admin_users')
     .select('is_active')
     .eq('user_id', userId)
     .maybeSingle();
 
-  if (error) throw error;
-  return data?.is_active === true;
+  if (adminError && !['PGRST116', '42P01', '42703'].includes(adminError.code)) {
+    throw adminError;
+  }
+  if (adminData?.is_active === true) return true;
+
+  const { data: profileData, error: profileError } = await supabase
+    .from('profiles')
+    .select('is_admin')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (profileError && !['PGRST116', '42P01', '42703'].includes(profileError.code)) {
+    throw profileError;
+  }
+
+  return profileData?.is_admin === true;
 }
 
 async function getWalletSummary(userId) {
@@ -706,7 +721,12 @@ router.get('/admin/dashboard', requireAuth, async (req, res) => {
     if (failedQuery) throw failedQuery.error;
 
     const profiles = profilesResult.data || [];
-    const activeAdminIds = new Set((adminUsersResult.data || []).filter((item) => item.is_active).map((item) => item.user_id));
+    const adminRows = Array.isArray(adminUsersResult.data) ? adminUsersResult.data.filter((item) => item.is_active) : [];
+    const profileAdminIds = profiles.filter((profile) => profile.is_admin === true).map((profile) => profile.id);
+    const activeAdminIds = new Set([
+      ...adminRows.map((item) => item.user_id),
+      ...profileAdminIds,
+    ]);
     const transactions = transactionsResult.data || [];
     const deposits = depositsResult.data || [];
     const withdrawals = withdrawalsResult.data || [];
