@@ -6,7 +6,8 @@ SET search_path TO 'public', 'pg_temp'
 AS $$
 declare
   v_inviter_id uuid;
-  v_bonus_amount numeric(12,2) := 50;
+  v_inviter_bonus_amount numeric(12,2) := 100;
+  v_invitee_bonus_amount numeric(12,2) := 50;
   v_history_id uuid;
   v_code text;
 begin
@@ -62,8 +63,8 @@ begin
     v_inviter_id,
     p_user_id,
     v_code,
-    v_bonus_amount,
-    'pending'
+    v_inviter_bonus_amount,
+    'completed'
   )
   on conflict (invited_user_id) do nothing;
 

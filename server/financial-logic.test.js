@@ -65,7 +65,7 @@ test('investment return calculation is correct', () => {
 });
 
 test('referral reward totals are computed', () => {
-  assert.deepEqual(calculateReferralRewards(50, 50), { referrer: 50, referred: 50, total: 100 });
+  assert.deepEqual(calculateReferralRewards(100, 50), { referrer: 100, referred: 50, total: 150 });
 });
 
 test('welcome bonus is counted as incoming wallet credit', () => {

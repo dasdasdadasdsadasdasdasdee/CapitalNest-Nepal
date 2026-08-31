@@ -170,7 +170,8 @@ security definer
 as $$
 declare
   v_inviter_id uuid;
-  v_bonus_amount numeric(12,2) := 50;
+  v_inviter_bonus_amount numeric(12,2) := 100;
+  v_invitee_bonus_amount numeric(12,2) := 50;
   v_history_id uuid;
   v_invitee_bonus_tx_id uuid;
   v_inviter_bonus_tx_id uuid;
@@ -217,7 +218,7 @@ begin
     v_inviter_id,
     p_user_id,
     trim(p_invitation_code),
-    v_bonus_amount,
+    v_inviter_bonus_amount,
     'completed'
   )
   on conflict (invited_user_id) do nothing
@@ -246,7 +247,7 @@ begin
     values (
       v_inviter_id,
       'welcome_bonus',
-      v_bonus_amount,
+      v_inviter_bonus_amount,
       'referral',
       'completed',
       'Welcome bonus for successful referral',
@@ -267,7 +268,7 @@ begin
     values (
       v_inviter_id,
       'WELCOME_BONUS',
-      v_bonus_amount,
+      v_inviter_bonus_amount,
       'completed',
       'referral',
       'Welcome bonus for successful referral',
@@ -295,7 +296,7 @@ begin
     values (
       p_user_id,
       'welcome_bonus',
-      v_bonus_amount,
+      v_invitee_bonus_amount,
       'referral',
       'completed',
       'Welcome bonus for joining through referral link',
@@ -316,7 +317,7 @@ begin
     values (
       p_user_id,
       'WELCOME_BONUS',
-      v_bonus_amount,
+      v_invitee_bonus_amount,
       'completed',
       'referral',
       'Welcome bonus for joining through referral link',
@@ -326,7 +327,7 @@ begin
   end if;
 
   update public.referral_history
-  set bonus_amount = v_bonus_amount,
+  set bonus_amount = v_inviter_bonus_amount,
       bonus_transaction_id = coalesce(bonus_transaction_id, v_inviter_bonus_tx_id)
   where id = v_history_id;
 

@@ -848,6 +848,74 @@
             window.scrollTo(0, 0);
         }
 
+        const checkoutQrMap = {
+            esewa: {
+                label: 'Esewa',
+                image: '../assets/img/ESEWA.jpg',
+                instruction: 'Scan this QR code with your eSewa app'
+            },
+            khalti: {
+                label: 'Khalti',
+                image: '../assets/img/KHALTI.jpg',
+                instruction: 'Scan this QR code with your Khalti app'
+            },
+            fonepay: {
+                label: 'FonePay',
+                image: '../assets/img/FONEYPAY.jpg',
+                instruction: 'Scan this QR code with your FonePay app'
+            }
+        };
+
+        async function loadCheckoutQrSettings() {
+            try {
+                const response = await fetch('/api/payment-qr');
+                if (!response.ok) return;
+                const payload = await response.json();
+                if (!payload.success || !payload.data) return;
+
+                const methodMap = {
+                    ESEWA: 'esewa',
+                    KHALTI: 'khalti',
+                    FONEPAY: 'fonepay'
+                };
+
+                Object.entries(payload.data).forEach(([methodKey, config]) => {
+                    const normalized = methodMap[String(methodKey).toUpperCase()] || String(methodKey).toLowerCase();
+                    if (!checkoutQrMap[normalized] || !config) return;
+                    checkoutQrMap[normalized] = {
+                        label: config.label || checkoutQrMap[normalized].label,
+                        image: config.imageUrl || config.image_url || checkoutQrMap[normalized].image,
+                        instruction: config.instruction || checkoutQrMap[normalized].instruction,
+                    };
+                });
+            } catch (error) {
+                console.warn('Unable to load checkout QR settings.', error);
+            }
+        }
+
+        function applyCheckoutQr(method) {
+            const normalized = String(method || 'esewa').toLowerCase();
+            const config = checkoutQrMap[normalized] || checkoutQrMap.esewa;
+            document.getElementById('qrImage').src = config.image;
+            document.getElementById('paymentText').textContent = config.instruction;
+        }
+
+        function initializeCheckoutQrSelector() {
+            const paymentInputs = document.querySelectorAll('input[name="paymentMethod"]');
+            paymentInputs.forEach((input) => {
+                input.addEventListener('change', function() {
+                    applyCheckoutQr(this.value);
+                });
+            });
+
+            const selected = document.querySelector('input[name="paymentMethod"]:checked')?.value || 'esewa';
+            applyCheckoutQr(selected);
+            loadCheckoutQrSettings().finally(() => {
+                const active = document.querySelector('input[name="paymentMethod"]:checked')?.value || selected;
+                applyCheckoutQr(active);
+            });
+        }
+
         function goToStep2() {
             const fullName = document.getElementById('fullName').value.trim();
             const phoneNumber = document.getElementById('phoneNumber').value.trim();
@@ -859,21 +927,7 @@
             }
 
             const method = paymentMethod.value;
-            const methodNames = {
-                'esewa': 'Esewa',
-                'khalti': 'Khalti',
-                'fonepay': 'FonePay'
-            };
-
-            // Map payment methods to images
-            const methodImages = {
-                'esewa': '../assets/img/ESEWA.jpg',
-                'khalti': '../assets/img/KHALTI.jpg',
-                'fonepay': '../assets/img/FONEYPAY.jpg'
-            };
-
-            document.getElementById('qrImage').src = methodImages[method];
-            document.getElementById('paymentText').textContent = 'Scan this QR code with your ' + methodNames[method] + ' app';
+            applyCheckoutQr(method);
 
             localStorage.setItem('checkoutData', JSON.stringify({
                 fullName: fullName,
@@ -1204,6 +1258,7 @@
         // Load plan on page load
         window.addEventListener('load', async function () {
             loadPlanDetails();
+            initializeCheckoutQrSelector();
             setSubmitButtonState(true, 'Checking session...');
 
             const { ready } = await waitForAuthSessionReady();

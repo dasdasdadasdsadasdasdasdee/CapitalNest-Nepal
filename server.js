@@ -35,8 +35,16 @@ app.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, 'login.html'));
 });
 
-app.get('/loginadmin', (req, res) => {
+app.get('/adminlogin', (req, res) => {
   res.sendFile(path.join(__dirname, 'admin', 'loginadmin.html'));
+});
+
+app.get('/loginadmin', (req, res) => {
+  res.redirect('/adminlogin');
+});
+
+app.get('/admin/loginadmin.html', (req, res) => {
+  res.redirect('/adminlogin');
 });
 
 // Fallback for other frontend routes to the home page instead of the login screen.

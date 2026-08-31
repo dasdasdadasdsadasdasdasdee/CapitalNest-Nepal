@@ -249,7 +249,7 @@ function generateReferralCode() {
   return `CN${randomPart}`;
 }
 
-function calculateReferralRewards(referrerReward = 50, referredReward = 50) {
+function calculateReferralRewards(referrerReward = 100, referredReward = 50) {
   return {
     referrer: Number(referrerReward || 0),
     referred: Number(referredReward || 0),

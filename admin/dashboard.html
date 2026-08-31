@@ -66,6 +66,12 @@
         .empty, .loading, .error { padding: 48px 20px; text-align: center; color: var(--muted); }
         .error { color: var(--red); }
         .toast { position: fixed; right: 22px; bottom: 22px; max-width: 360px; padding: 13px 16px; color: white; background: var(--ink); box-shadow: 0 8px 24px rgba(0,0,0,.16); }
+        .password-card { margin-top: 22px; background: var(--panel); border: 1px solid var(--line); padding: 18px 20px; }
+        .password-card h3 { margin: 0 0 14px; font-size: 1.05rem; }
+        .password-grid { display: grid; grid-template-columns: repeat(2, minmax(220px, 1fr)); gap: 14px; }
+        .password-grid input, .password-grid button { width: 100%; }
+        .password-grid input { padding: 12px 14px; border: 1px solid var(--line); font: inherit; }
+        .password-grid button { margin-top: 0; padding: 12px 14px; border: 0; background: var(--teal); color: white; font: inherit; font-weight: 700; cursor: pointer; }
         @media (max-width: 900px) { .stats { grid-template-columns: repeat(2, 1fr); } .intro { align-items: start; flex-direction: column; } }
         @media (max-width: 560px) { .topbar { align-items: start; flex-direction: column; } .shell { width: 94vw; margin-top: 22px; } .stats { grid-template-columns: 1fr; } .admin-email { max-width: 230px; overflow: hidden; text-overflow: ellipsis; } }
     </style>
@@ -83,6 +89,33 @@
         </section>
 
         <section id="stats" class="stats"></section>
+        <section class="password-card">
+            <h3>Change admin password</h3>
+            <form id="adminPasswordForm">
+                <div class="password-grid">
+                    <input id="currentPassword" type="password" placeholder="Current password" autocomplete="current-password" required>
+                    <input id="newPassword" type="password" placeholder="New password" autocomplete="new-password" required>
+                    <button type="submit">Update password</button>
+                </div>
+            </form>
+        </section>
+        <section class="password-card">
+            <h3>Replace payment QR codes</h3>
+            <form id="qrForm" enctype="multipart/form-data">
+                <div class="password-grid">
+                    <select id="qrMethod" required>
+                        <option value="ESEWA">eSewa</option>
+                        <option value="KHALTI">Khalti</option>
+                        <option value="FONEPAY">FonePay</option>
+                    </select>
+                    <input id="qrLabel" type="text" placeholder="Display name (optional)">
+                    <input id="qrAccountNumber" type="text" placeholder="Account number / wallet ID">
+                    <input id="qrInstruction" type="text" placeholder="Instruction text (optional)">
+                    <input id="qrFile" type="file" accept="image/*">
+                    <button type="submit">Save QR</button>
+                </div>
+            </form>
+        </section>
         <nav id="tabs" class="tabs" aria-label="Admin data views">
             <button class="tab active" data-view="users">Users & balances</button>
             <button class="tab" data-view="deposits">Deposits & proofs</button>
@@ -312,6 +345,55 @@
         });
         refreshButton.addEventListener('click', refreshDashboard);
         document.getElementById('logoutButton').addEventListener('click', async () => { await supabase.auth.signOut(); window.location.href = '../login.html'; });
+
+        document.getElementById('adminPasswordForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const token = await authToken();
+
+            try {
+                const response = await fetch('/api/admin/change-password', {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ currentPassword, newPassword })
+                });
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok || !payload.success) throw new Error(payload.message || 'Unable to change password.');
+                showToast(payload.message || 'Password updated.');
+                document.getElementById('adminPasswordForm').reset();
+            } catch (error) {
+                showToast(error.message || 'Failed to update password.');
+            }
+        });
+
+        document.getElementById('qrForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const token = await authToken();
+            const formData = new FormData();
+            const method = document.getElementById('qrMethod').value;
+            const file = document.getElementById('qrFile').files[0];
+
+            formData.append('method', method);
+            formData.append('label', document.getElementById('qrLabel').value.trim());
+            formData.append('accountNumber', document.getElementById('qrAccountNumber').value.trim());
+            formData.append('instruction', document.getElementById('qrInstruction').value.trim());
+            if (file) formData.append('qrFile', file);
+
+            try {
+                const response = await fetch('/api/admin/payment-qr', {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${token}` },
+                    body: formData,
+                });
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok || !payload.success) throw new Error(payload.message || 'Unable to save QR settings.');
+                showToast(payload.message || 'QR saved.');
+                document.getElementById('qrForm').reset();
+            } catch (error) {
+                showToast(error.message || 'Failed to save QR.');
+            }
+        });
 
         try {
             const { data: { user }, error } = await supabase.auth.getUser();

@@ -121,32 +121,58 @@
     <script>
         const paymentQrMap = {
             'eSewa': {
-                label: 'eSewa: 9767048356',
+                label: 'eSewa',
+                accountNumber: '9767048356',
                 image: '../assets/img/ESEWA.jpg',
                 instruction: 'Pay the amount in NPR using the selected eSewa QR below.'
             },
             'Khalti': {
-                label: 'Khalti: 9713555399',
+                label: 'Khalti',
+                accountNumber: '9713555399',
                 image: '../assets/img/KHALTI.jpg',
                 instruction: 'Pay the amount in NPR using the selected Khalti QR below.'
             },
             'FonePay': {
-                label: 'FonePay: 98XXXXXXXX',
+                label: 'FonePay',
+                accountNumber: '98XXXXXXXX',
                 image: '../assets/img/FONEYPAY.jpg',
                 instruction: 'Pay the amount in NPR using the selected FonePay QR below.'
             }
         };
 
+        async function loadPaymentQrSettings() {
+            try {
+                const response = await fetch('/api/payment-qr');
+                if (!response.ok) return;
+                const payload = await response.json();
+                if (!payload.success || !payload.data) return;
+                Object.keys(payload.data).forEach((methodKey) => {
+                    const config = payload.data[methodKey];
+                    if (!config) return;
+                    const normalizedKey = String(methodKey).toLowerCase() === 'esewa' ? 'eSewa' : String(methodKey).toLowerCase() === 'khalti' ? 'Khalti' : 'FonePay';
+                    paymentQrMap[normalizedKey] = {
+                        label: config.label || config.method || normalizedKey,
+                        accountNumber: config.accountNumber || config.account_number || config.label || '',
+                        image: config.imageUrl || config.image_url || paymentQrMap[normalizedKey].image,
+                        instruction: config.instruction || paymentQrMap[normalizedKey].instruction,
+                    };
+                });
+            } catch (error) {
+                console.warn('Unable to load payment QR settings.', error);
+            }
+        }
+
         function updatePaymentPreview() {
             const selected = $('#paymenttype').val() || 'eSewa';
             const config = paymentQrMap[selected] || paymentQrMap['eSewa'];
-            $('#paymentWalletLabel').html(`<strong>${selected}</strong>: ${config.label.replace(/^.*?:\s*/, '')}`);
+            const account = config.accountNumber ? `: ${config.accountNumber}` : '';
+            $('#paymentWalletLabel').html(`<strong>${selected}</strong>${account}`);
             $('#paymentInstruction').text(config.instruction);
             $('#paymentQrImage').attr('src', config.image);
         }
 
         $('#paymenttype').on('change', updatePaymentPreview);
-        updatePaymentPreview();
+        loadPaymentQrSettings().finally(updatePaymentPreview);
     </script>
     <script src="../assets/js/script.min.js"></script>
     <script src="../supabase-config.js"></script>

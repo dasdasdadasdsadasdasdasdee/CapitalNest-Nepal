@@ -100,6 +100,56 @@ function respondError(res, code, message, status = 400) {
   return res.status(status).json({ error: code, message });
 }
 
+async function ensurePaymentQrBucket() {
+  if (!storageClient?.storage) return;
+
+  try {
+    const { data: existingBucket, error: getError } = await storageClient.storage.getBucket('payment-qr');
+    if (!getError && existingBucket) return;
+
+    const { error: createError } = await storageClient.storage.createBucket('payment-qr', {
+      public: true,
+      allowedMimeTypes: ['image/png', 'image/jpeg', 'image/webp'],
+      fileSizeLimit: '5MB',
+    });
+
+    if (createError && !String(createError.message || '').toLowerCase().includes('already exists')) {
+      throw createError;
+    }
+  } catch (error) {
+    console.warn('Payment QR bucket setup warning:', error?.message || error);
+  }
+}
+
+async function getPaymentQrSettings() {
+  const { data, error } = await supabase
+    .from('payment_qr_settings')
+    .select('*')
+    .order('updated_at', { ascending: false });
+
+  if (error) {
+    console.warn('Unable to load payment QR settings:', error.message || error);
+    return {};
+  }
+
+  const resolved = {};
+  for (const row of data || []) {
+    const method = String(row.method || '').toUpperCase();
+    if (!method) continue;
+    resolved[method] = {
+      method,
+      label: row.label || row.display_name || method,
+      accountNumber: row.account_number || row.accountNumber || '',
+      imageUrl: row.image_url || row.imageUrl || '',
+      storagePath: row.storage_path || row.storagePath || '',
+      instruction: row.instruction || `Pay the amount in NPR using the selected ${method} QR below.`,
+      updatedAt: row.updated_at || row.created_at || null,
+    };
+  }
+
+  return resolved;
+}
+
 async function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization || '';
   const token = authHeader.replace(/^Bearer\s+/i, '').trim();
@@ -214,6 +264,47 @@ async function getWalletSummary(userId) {
     invested: Number(activeInvested.toFixed(2)),
   };
 }
+
+router.get('/payment-qr', async (_req, res) => {
+  try {
+    const settings = await getPaymentQrSettings();
+    const defaults = {
+      ESEWA: {
+        method: 'ESEWA',
+        label: 'eSewa',
+        accountNumber: '9767048356',
+        imageUrl: '/assets/img/ESEWA.jpg',
+        instruction: 'Pay the amount in NPR using the selected eSewa QR below.',
+      },
+      KHALTI: {
+        method: 'KHALTI',
+        label: 'Khalti',
+        accountNumber: '9713555399',
+        imageUrl: '/assets/img/KHALTI.jpg',
+        instruction: 'Pay the amount in NPR using the selected Khalti QR below.',
+      },
+      FONEPAY: {
+        method: 'FONEPAY',
+        label: 'FonePay',
+        accountNumber: '98XXXXXXXX',
+        imageUrl: '/assets/img/FONEYPAY.jpg',
+        instruction: 'Pay the amount in NPR using the selected FonePay QR below.',
+      },
+    };
+
+    const merged = {};
+    for (const method of Object.keys(defaults)) {
+      merged[method] = {
+        ...defaults[method],
+        ...(settings[method] || {}),
+      };
+    }
+
+    res.json({ success: true, data: merged });
+  } catch (error) {
+    res.status(500).json({ error: 'PAYMENT_QR_ERROR', message: 'Unable to load payment QR settings.' });
+  }
+});
 
 router.get('/wallet', requireAuth, async (req, res) => {
   try {
@@ -468,6 +559,130 @@ router.get('/admin/deposits', requireAuth, async (req, res) => {
     res.json({ success: true, data });
   } catch (error) {
     res.status(500).json({ error: 'ADMIN_DEPOSITS_ERROR', message: 'Unable to load deposit approvals.' });
+  }
+});
+
+router.get('/admin/payment-qr', requireAuth, async (req, res) => {
+  try {
+    if (!await isAdminUser(req.user.id)) {
+      return respondError(res, 'FORBIDDEN', 'Admin access required.', 403);
+    }
+
+    const settings = await getPaymentQrSettings();
+    res.json({ success: true, data: settings });
+  } catch (error) {
+    res.status(500).json({ error: 'ADMIN_PAYMENT_QR_ERROR', message: 'Unable to load payment QR settings.' });
+  }
+});
+
+router.post('/admin/payment-qr', requireAuth, upload.single('qrFile'), async (req, res) => {
+  try {
+    if (!await isAdminUser(req.user.id)) {
+      return respondError(res, 'FORBIDDEN', 'Admin access required.', 403);
+    }
+
+    const method = String(req.body.method || '').toUpperCase();
+    if (!['ESEWA', 'KHALTI', 'FONEPAY'].includes(method)) {
+      return respondError(res, 'INVALID_PAY_METHOD', 'Unsupported payment method.', 400);
+    }
+
+    if (!req.file && !req.body.imageUrl) {
+      return respondError(res, 'QR_REQUIRED', 'Please upload a new QR image to replace the old QR.', 400);
+    }
+
+    await ensurePaymentQrBucket();
+
+    let imageUrl = String(req.body.imageUrl || '').trim();
+    let storagePath = '';
+
+    if (req.file) {
+      const filename = `${method.toLowerCase()}-${Date.now()}${path.extname(req.file.originalname || '.png')}`;
+      storagePath = `${method.toLowerCase()}/${filename}`;
+      const fileBuffer = fs.readFileSync(req.file.path);
+
+      const { data: uploadData, error: uploadError } = await storageClient.storage
+        .from('payment-qr')
+        .upload(storagePath, fileBuffer, {
+          cacheControl: '3600',
+          contentType: req.file.mimetype || 'image/png',
+          upsert: true,
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: publicData } = storageClient.storage.from('payment-qr').getPublicUrl(uploadData?.path || storagePath);
+      imageUrl = publicData?.publicUrl || imageUrl;
+      storagePath = uploadData?.path || storagePath;
+    }
+
+    const label = String(req.body.label || '').trim() || method;
+    const accountNumber = String(req.body.accountNumber || '').trim() || '';
+    const instruction = String(req.body.instruction || '').trim() || `Pay the amount in NPR using the selected ${label} QR below.`;
+
+    const { data, error } = await supabase
+      .from('payment_qr_settings')
+      .upsert({
+        method,
+        label,
+        account_number: accountNumber,
+        image_url: imageUrl,
+        storage_path: storagePath,
+        instruction,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'method' })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    res.json({
+      success: true,
+      data,
+      message: `${label} QR updated successfully and the previous QR has been replaced.`,
+    });
+  } catch (error) {
+    const message = error?.message || 'Unable to update payment QR.';
+    res.status(500).json({ error: 'UPDATE_PAYMENT_QR_ERROR', message });
+  }
+});
+
+router.post('/admin/change-password', requireAuth, async (req, res) => {
+  try {
+    if (!await isAdminUser(req.user.id)) {
+      return respondError(res, 'FORBIDDEN', 'Admin access required.', 403);
+    }
+
+    const currentPassword = String(req.body.currentPassword || '').trim();
+    const newPassword = String(req.body.newPassword || '').trim();
+
+    if (!currentPassword || !newPassword) {
+      return respondError(res, 'PASSWORD_REQUIRED', 'Current and new passwords are required.', 400);
+    }
+
+    if (newPassword.length < 6) {
+      return respondError(res, 'PASSWORD_TOO_SHORT', 'New password must be at least 6 characters.', 400);
+    }
+
+    const email = String(req.user?.email || '').trim();
+    if (!email) {
+      return respondError(res, 'EMAIL_REQUIRED', 'Admin email is required to verify your current password.', 400);
+    }
+
+    const { error: reauthError } = await supabase.auth.signInWithPassword({ email, password: currentPassword });
+    if (reauthError) {
+      return respondError(res, 'CURRENT_PASSWORD_INVALID', 'The current password is incorrect.', 401);
+    }
+
+    if (!supabaseServiceRole) {
+      return respondError(res, 'SERVICE_ROLE_MISSING', 'Password change is not available because the server is missing the service-role key.', 500);
+    }
+
+    const { error: updateError } = await supabase.auth.admin.updateUserById(req.user.id, { password: newPassword });
+    if (updateError) throw updateError;
+
+    res.json({ success: true, message: 'Admin password changed successfully.' });
+  } catch (error) {
+    res.status(500).json({ error: 'ADMIN_CHANGE_PASSWORD_ERROR', message: error?.message || 'Unable to change admin password.' });
   }
 });
 
