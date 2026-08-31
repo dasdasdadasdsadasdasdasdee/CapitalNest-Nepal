@@ -94,7 +94,7 @@ console.log('========================================\n');
 console.log('1. Try registering new user');
 console.log('   → http://localhost:3000/register.html');
 console.log('\n2. Login with admin credentials');
-console.log('   → Email: chiranboss@gmail.com');
+console.log('   → Email: capitalnestnepal@gmail.com');
 console.log('   → Password: Admin@12345');
 console.log('   → URL: http://localhost:3000/admin/loginadmin.html\n');
 

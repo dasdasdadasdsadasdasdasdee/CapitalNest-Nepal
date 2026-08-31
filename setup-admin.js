@@ -15,7 +15,7 @@ async function main() {
   console.log('========================================\n');
 
   try {
-    const adminEmail = 'chiranboss@gmail.com';
+    const adminEmail = 'capitalnestnepal@gmail.com';
     const adminPassword = 'Admin@12345'; // Default password
 
     // Check if admin already exists

@@ -185,14 +185,20 @@
         };
 
         async function authToken() {
-            const { data } = await supabase.auth.getSession();
-            return data.session?.access_token || '';
+            const { data, error } = await supabase.auth.getSession();
+            if (error) {
+                console.warn('Admin dashboard session check failed:', error);
+            }
+            return data?.session?.access_token || '';
         }
 
         async function loadDashboard() {
             console.log('Loading admin dashboard...');
             const token = await authToken();
-            if (!token) throw new Error('Your admin session has expired. Please sign in again.');
+            if (!token) {
+                window.location.href = '/admin/loginadmin.html';
+                return;
+            }
 
             const url = '/api/admin/dashboard';
             console.log('Fetching users:', url);

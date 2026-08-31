@@ -2,7 +2,7 @@
 insert into public.profiles (id, email, is_admin)
 select id, email, true
 from auth.users
-where lower(email) = lower('chiranboss@gmail.com')
+where lower(email) = lower('capitalnestnepal@gmail.com')
 on conflict (id) do update
 set email = excluded.email,
     is_admin = true;
@@ -10,7 +10,7 @@ set email = excluded.email,
 insert into public.admin_users (user_id, email, is_active)
 select id, email, true
 from auth.users
-where lower(email) = lower('chiranboss@gmail.com')
+where lower(email) = lower('capitalnestnepal@gmail.com')
 on conflict (user_id) do update
 set email = excluded.email,
     is_active = true;

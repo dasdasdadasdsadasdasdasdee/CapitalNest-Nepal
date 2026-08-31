@@ -57,7 +57,7 @@ If you see any errors, they'll appear in red. Most errors are "already exists" w
 ### Test 2: Admin Dashboard
 1. Go to: http://localhost:3000/admin/loginadmin.html
 2. Login with admin credentials:
-   - Email: `chiranboss@gmail.com`
+   - Email: `capitalnestnepal@gmail.com`
    - Password: `Admin@12345`
 3. You should see the admin dashboard with:
    - Users & Balances tab

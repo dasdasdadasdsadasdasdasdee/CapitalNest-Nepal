@@ -12,11 +12,13 @@ create table if not exists public.payment_qr_settings (
 
 alter table public.payment_qr_settings enable row level security;
 
-create policy if not exists "payment_qr_settings_are_publicly_readable"
+drop policy if exists "payment_qr_settings_are_publicly_readable" on public.payment_qr_settings;
+create policy "payment_qr_settings_are_publicly_readable"
   on public.payment_qr_settings for select
   using (true);
 
-create policy if not exists "admins_can_insert_qr_settings"
+drop policy if exists "admins_can_insert_qr_settings" on public.payment_qr_settings;
+create policy "admins_can_insert_qr_settings"
   on public.payment_qr_settings for insert
   with check (
     exists (
@@ -27,7 +29,8 @@ create policy if not exists "admins_can_insert_qr_settings"
     )
   );
 
-create policy if not exists "admins_can_update_qr_settings"
+drop policy if exists "admins_can_update_qr_settings" on public.payment_qr_settings;
+create policy "admins_can_update_qr_settings"
   on public.payment_qr_settings for update
   using (
     exists (
@@ -46,7 +49,8 @@ create policy if not exists "admins_can_update_qr_settings"
     )
   );
 
-create policy if not exists "admins_can_delete_qr_settings"
+drop policy if exists "admins_can_delete_qr_settings" on public.payment_qr_settings;
+create policy "admins_can_delete_qr_settings"
   on public.payment_qr_settings for delete
   using (
     exists (
