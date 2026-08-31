@@ -46,10 +46,10 @@ test('matured investment returns add the principal and interest back to the wall
 });
 
 test('minimum withdrawal and balance checks are enforced', () => {
-  assert.equal(isValidWithdrawalAmount(1500, 5000), 'Minimum withdrawal amount is NPR 2,000.');
+  assert.equal(isValidWithdrawalAmount(800, 5000), 'Minimum withdrawal amount is NPR 1,000.');
   assert.equal(isValidWithdrawalAmount(6000, 5000), 'Your balance is insufficient.');
-  assert.equal(isValidWithdrawalAmount(3000, 5000), true);
-  assert.equal(MIN_WITHDRAWAL_AMOUNT, 2000);
+  assert.equal(isValidWithdrawalAmount(1500, 5000), true);
+  assert.equal(MIN_WITHDRAWAL_AMOUNT, 1000);
 });
 
 test('withdrawal status transitions are validated', () => {
@@ -105,7 +105,7 @@ test('legacy CN referral codes remain accepted alongside the 7-digit format', ()
 });
 
 test('withdrawal validation enforces supported Nepal methods and wallet details', () => {
-  assert.equal(validateWithdrawalRequest({ requestedAmount: 1500, availableBalance: 5000, method: 'ESEWA', accountDetails: '9850000000', walletName: 'Ram Shrestha', walletNumber: '9850000000' }), 'Minimum withdrawal amount is NPR 2,000.');
+  assert.equal(validateWithdrawalRequest({ requestedAmount: 800, availableBalance: 5000, method: 'ESEWA', accountDetails: '9850000000', walletName: 'Ram Shrestha', walletNumber: '9850000000' }), 'Minimum withdrawal amount is NPR 1,000.');
   assert.equal(validateWithdrawalRequest({ requestedAmount: 3000, availableBalance: 2500, method: 'KHALTI', accountDetails: '9812345678', walletName: 'Ram Shrestha', walletNumber: '9812345678' }), 'Your balance is insufficient.');
   assert.equal(validateWithdrawalRequest({ requestedAmount: 3000, availableBalance: 5000, method: 'BANK_TRANSFER', accountDetails: '12345', walletName: 'Ram Shrestha', walletNumber: '9850000000' }), 'Unsupported withdrawal method.');
   assert.equal(validateWithdrawalRequest({ requestedAmount: 3000, availableBalance: 5000, method: 'ESEWA', accountDetails: '', walletName: 'Ram Shrestha', walletNumber: '9850000000' }), 'Account details are required before requesting a withdrawal.');

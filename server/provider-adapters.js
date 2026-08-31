@@ -1,4 +1,4 @@
-const MIN_WITHDRAWAL_AMOUNT = 2000;
+const MIN_WITHDRAWAL_AMOUNT = 1000;
 
 class WithdrawalProvider {
   constructor(name) {

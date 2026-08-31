@@ -890,7 +890,7 @@ router.post('/withdrawals', requireAuth, upload.single('qrImage'), async (req, r
 
     const summary = await getWalletSummary(userId);
     if (amount > summary.available) {
-      return respondError(res, 'INSUFFICIENT_BALANCE', 'Your balance is insufficient.', 400);
+      return respondError(res, 'INSUFFICIENT_BALANCE', 'You have insufficient balance. Your available balance must be at least NPR ' + amount.toLocaleString('en-US') + '.', 400);
     }
 
     const existingPending = await supabase
@@ -938,6 +938,15 @@ router.post('/withdrawals', requireAuth, upload.single('qrImage'), async (req, r
         payment_method: method,
         note: `Withdrawal request ${withdrawal.id}`,
         created_at: new Date().toISOString(),
+      });
+
+    if (ledgerError) throw ledgerError;
+
+    res.json({
+      success: true,
+      data: withdrawal,
+      message: 'Withdrawal request submitted successfully. Please wait 48 hours for the withdrawal to complete.',
+    });
       });
 
     if (ledgerError) throw ledgerError;
