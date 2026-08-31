@@ -48,6 +48,14 @@ const storageClient = supabaseServiceRole
     })
   : supabase;
 
+// Dedicated admin client for dashboard/reports (must use service role to bypass RLS and show all users)
+// If service role is not available, log an error but continue with anon key (will show limited data due to RLS)
+const adminClient = supabaseServiceRole
+  ? createClient(supabaseUrl, supabaseServiceRole, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    })
+  : supabase;
+
 function getRequestSupabaseClient(req) {
   const authHeader = req.headers.authorization || '';
   const token = authHeader.replace(/^Bearer\s+/i, '').trim();
@@ -123,7 +131,7 @@ async function ensurePaymentQrBucket() {
 }
 
 async function getPaymentQrSettings() {
-  const { data, error } = await supabase
+  const { data, error } = await adminClient
     .from('payment_qr_settings')
     .select('*')
     .order('updated_at', { ascending: false });
@@ -565,7 +573,7 @@ router.get('/admin/deposits', requireAuth, async (req, res) => {
       return respondError(res, 'FORBIDDEN', 'Admin access required.', 403);
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await adminClient
       .from('deposits')
       .select('*')
       .order('created_at', { ascending: false });
@@ -634,7 +642,7 @@ router.post('/admin/payment-qr', requireAuth, upload.single('qrFile'), async (re
     const accountNumber = String(req.body.accountNumber || '').trim() || '';
     const instruction = String(req.body.instruction || '').trim() || `Pay the amount in NPR using the selected ${label} QR below.`;
 
-    const { data, error } = await supabase
+    const { data, error } = await adminClient
       .from('payment_qr_settings')
       .upsert({
         method,
@@ -707,13 +715,17 @@ router.get('/admin/dashboard', requireAuth, async (req, res) => {
       return respondError(res, 'FORBIDDEN', 'Admin access required.', 403);
     }
 
+    if (!supabaseServiceRole) {
+      console.warn('⚠️  SUPABASE_SERVICE_ROLE_KEY missing in production. Admin dashboard will show limited data due to RLS.');
+    }
+
     const [profilesResult, adminUsersResult, transactionsResult, depositsResult, withdrawalsResult, investmentsResult] = await Promise.all([
-      supabase.from('profiles').select('*').order('created_at', { ascending: false }),
-      supabase.from('admin_users').select('user_id, is_active'),
-      supabase.from('wallet_transactions').select('*').order('created_at', { ascending: false }),
-      supabase.from('deposits').select('*').order('created_at', { ascending: false }),
-      supabase.from('withdrawals').select('*').order('created_at', { ascending: false }),
-      supabase.from('investments').select('*').order('created_at', { ascending: false }),
+      adminClient.from('profiles').select('*').order('created_at', { ascending: false }),
+      adminClient.from('admin_users').select('user_id, is_active'),
+      adminClient.from('wallet_transactions').select('*').order('created_at', { ascending: false }),
+      adminClient.from('deposits').select('*').order('created_at', { ascending: false }),
+      adminClient.from('withdrawals').select('*').order('created_at', { ascending: false }),
+      adminClient.from('investments').select('*').order('created_at', { ascending: false }),
     ]);
 
     const failedQuery = [profilesResult, adminUsersResult, transactionsResult, depositsResult, withdrawalsResult, investmentsResult]
@@ -1095,7 +1107,7 @@ router.get('/admin/withdrawals', requireAuth, async (req, res) => {
       return respondError(res, 'FORBIDDEN', 'Admin access required.', 403);
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await adminClient
       .from('withdrawals')
       .select('*')
       .order('created_at', { ascending: false });
