@@ -947,11 +947,6 @@ router.post('/withdrawals', requireAuth, upload.single('qrImage'), async (req, r
       data: withdrawal,
       message: 'Withdrawal request submitted successfully. Please wait 48 hours for the withdrawal to complete.',
     });
-      });
-
-    if (ledgerError) throw ledgerError;
-
-    res.status(201).json({ success: true, data: withdrawal, message: 'Withdrawal request created.' });
   } catch (error) {
     if (error.message === 'INVALID_QR_IMAGE') {
       return respondError(res, 'INVALID_QR_IMAGE', 'Only JPG, JPEG, PNG, or WEBP images under 5MB are allowed.', 400);
